@@ -3,44 +3,10 @@ var express = require("express");
 var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
-const fs = require("fs");
 var indexRouter = require("./routes/index");
 var app = express();
 const cron = require("node-cron");
-const https = require("https");
-const puppeteer = require("puppeteer");
-const ig = require("./instagram");
-
-const _deleteLocalFile = (dest) => {
-  try {
-    fs.unlinkSync(dest);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-const _downloadLocalFile = (url, dest, cb) => {
-  const file = fs.createWriteStream(dest);
-  const request = https.get(url, (response) => {
-    // check if response is success
-    if (response.statusCode !== 200) {
-      return cb("Response status was " + response.statusCode);
-    }
-    response.pipe(file);
-  });
-  // close() is async, call cb after close completes
-  file.on("finish", () => file.close(cb));
-  // check for request error too
-  request.on("error", (err) => {
-    _deleteLocalFile(dest);
-    return cb(err.message);
-  });
-  file.on("error", (err) => {
-    // Handle errors
-    _deleteLocalFile(dest); // Delete the file async. (But we don't check the result)
-    return cb(err.message);
-  });
-};
+const InstagramPuppet = require("./instagram");
 
 const memes_pages = [
   "meme.ig",
@@ -104,94 +70,151 @@ const nature_pages = [
   "nature._.videos",
 ];
 
-// const _postStoryOnInstagram = async () => {
-//   const browser = await puppeteer.launch({
-//     args: ["--no-sandbox", "--disable-setuid-sandbox"],
-//     headless: false,
-//   });
-//   const page = await browser.newPage();
-//   await page.emulate(puppeteer.devices["iPhone 8"]);
+const _getRandomNavigationLink = () => {
+  const random_page = `${nature_pages[0]}`;
+  if (random_page.startsWith("#")) {
+    return `https://instagram.com/explore/tags/${random_page.substring(1)}`;
+  }
+  return `https://instagram.com/${random_page}`;
+};
 
-//   // ------------------------- Login to instagram -------------------------
-//   await page.goto("https://www.instagram.com", {
-//     waitUntil: "networkidle2",
-//   });
-//   const login_nav_btn = await page.waitForXPath(
-//     '//*[@id="react-root"]/section/main/article/div/div/div/div[3]/button[1]'
-//   );
-//   await login_nav_btn.click();
-//   await page.type("input[name=username]", "techno.savvyh");
-//   await page.type("input[name=password]", "@$dfghjk!Instagram123@");
-//   await page.click("button[type=submit]");
-//   // ------------------------- (EXIT) Login to instagram -------------------------
-
-//   // ------------------------- Preferences -------------------------
-//   const not_preferred_to_save_login_info = await page.waitForXPath(
-//     '//*[@id="react-root"]/section/main/div/div/div/button'
-//   );
-//   await not_preferred_to_save_login_info.click();
-//   const not_preferred_to_add_instal_on_home_screen = await page.waitForXPath(
-//     "/html/body/div[4]/div/div/div/div[3]/button[2]"
-//   );
-//   await not_preferred_to_add_instal_on_home_screen.click();
-//   // ------------------------- (EXIT) Preferences -------------------------
-
-//   await page.click(
-//     "#react-root > section > nav.NXc7H.f11OC > div > div > div.KGiwt > div > div > div:nth-child(2) > a"
-//   );
-//   await page.type(
-//     "#react-root > section > nav.gW4DF > div > header > div > h1 > div > div > div > div > label > input",
-//     nature_pages[0]
-//   );
-//   return;
-//   const destination = "/public/images/file.jpg";
-//   const filePath = path.relative(process.cwd(), __dirname + destination);
-//   _downloadLocalFile(
-//     "https://images.unsplash.com/photo-1620126956052-e75d9462e66b?ixlib=rb-1.2.1&amp;q=80&amp;fm=jpg&amp;crop=entropy&amp;cs=tinysrgb&amp;w=1080&amp;fit=max",
-//     filePath,
-//     async (err) => {
-//       if (err) {
-//         console.log("Error: " + err);
-//         return;
-//       }
-
-//       // ------------------------- File Uploader -------------------------
-//       const [fileChooser] = await Promise.all([
-//         page.waitForFileChooser(),
-//         page.click("button[class='mTGkH']"),
-//       ]);
-
-//       fileChooser.isMultiple(false);
-//       await fileChooser.accept([filePath]);
-//       const upload_btn = await page.waitForXPath(
-//         '//*[@id="react-root"]/section/footer/div/div/button'
-//       );
-//       await upload_btn.click();
-//       await page.waitForXPath("/html/body/div[3]/div/div/div/p", {
-//         visible: true,
-//       });
-//       // ------------------------- (EXIT) File Uploader -------------------------
-
-//       await browser.close();
-//       _deleteLocalFile(filePath);
-//     }
-//   );
-// };
-// _postStoryOnInstagram();
-
-(async () => {
+const automateInstagram = async () => {
+  const navigateToLink = _getRandomNavigationLink();
+  const ig = new InstagramPuppet();
   await ig.initialize();
   await ig.emulateTo("iPhone 8");
-  await ig.login("techno.savvyh", "@$dfghjk!Instagram123@", {
-    saveLoginInfo: false,
-    addInstagramToHomeScreen: false,
-    allowNotifications: false,
-  });
-  await ig.searchFor(nature_pages[0]);
-  await ig.selectSearchResult({ search_result: 1 });
-  const randomPostInfo = await ig.getRandomPostInfo();
-  console.log(randomPostInfo);
-})();
+  await ig.login("techno.savvyc", "@$dfghjk!Instagram123@");
+  await ig.goto(navigateToLink);
+  // await ig.searchFor(nature_pages[0]);
+  // await ig.selectSearchResult();
+  ig.getRandomPostInfo()
+    .then((res) => res.json())
+    .then(async (resp) => {
+      const { shortcode_media } = resp?.graphql;
+      const is_video = !!shortcode_media?.is_video;
+      const destination = `/public/images/file.${is_video ? "mp4" : "jpg"}`;
+      const filePath = path.relative(process.cwd(), __dirname + destination);
+      let fileLink = shortcode_media?.[is_video ? "video_url" : "display_url"];
+      if (fileLink)
+        ig.downloadFileToLocal(fileLink, filePath, (err) => {
+          if (err) {
+            console.log("Error: ", err);
+            return;
+          }
+          (async () => {
+            await ig.uploadStory(filePath);
+            await ig.exit();
+            ig.removeFileFromLocal(filePath);
+          })();
+        });
+    })
+    .catch((err) => console.log("Error: " + err));
+};
+
+global.instagramSession = [
+  {
+    name: "rur",
+    value: "ASH",
+    domain: ".instagram.com",
+    path: "/",
+    expires: -1,
+    size: 6,
+    httpOnly: true,
+    secure: true,
+    session: true,
+    sameParty: false,
+    sourceScheme: "Secure",
+    sourcePort: 443,
+  },
+  {
+    name: "sessionid",
+    value: "47662415146%3Acan1KVJDKnrlWU%3A7",
+    domain: ".instagram.com",
+    path: "/",
+    expires: 1652836797.737938,
+    size: 41,
+    httpOnly: true,
+    secure: true,
+    session: false,
+    sameParty: false,
+    sourceScheme: "Secure",
+    sourcePort: 443,
+  },
+  {
+    name: "mid",
+    value: "YKMWOwAAAAF7qP42b_Sc-xa94eI-",
+    domain: ".instagram.com",
+    path: "/",
+    expires: 1684372793.779818,
+    size: 31,
+    httpOnly: false,
+    secure: true,
+    session: false,
+    sameParty: false,
+    sourceScheme: "Secure",
+    sourcePort: 443,
+  },
+  {
+    name: "csrftoken",
+    value: "xOzfPfWbwQefVGoNm4bPgmtsRATvaRMD",
+    domain: ".instagram.com",
+    path: "/",
+    expires: 1652750401.972166,
+    size: 41,
+    httpOnly: false,
+    secure: true,
+    session: false,
+    sameParty: false,
+    sourceScheme: "Secure",
+    sourcePort: 443,
+  },
+  {
+    name: "ig_nrcb",
+    value: "1",
+    domain: ".instagram.com",
+    path: "/",
+    expires: 1652836793.081246,
+    size: 8,
+    httpOnly: false,
+    secure: true,
+    session: false,
+    sameParty: false,
+    sourceScheme: "Secure",
+    sourcePort: 443,
+  },
+  {
+    name: "ds_user_id",
+    value: "47662415146",
+    domain: ".instagram.com",
+    path: "/",
+    expires: 1629076801.97245,
+    size: 21,
+    httpOnly: false,
+    secure: true,
+    session: false,
+    sameParty: false,
+    sourceScheme: "Secure",
+    sourcePort: 443,
+  },
+  {
+    name: "ig_did",
+    value: "182021E4-6348-4A7F-B0D5-CE63F693A239",
+    domain: ".instagram.com",
+    path: "/",
+    expires: 1684372793.081005,
+    size: 42,
+    httpOnly: true,
+    secure: true,
+    session: false,
+    sameParty: false,
+    sourceScheme: "Secure",
+    sourcePort: 443,
+  },
+];
+automateInstagram();
+// setTimeout(async () => {
+//   automateInstagram();
+// }, 30000);
 
 // cron.schedule("0 0 * * * *", _postStoryOnInstagram);
 

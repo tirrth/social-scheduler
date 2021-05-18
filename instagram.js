@@ -1,13 +1,11 @@
 const puppeteer = require("puppeteer");
 const fetch = require("node-fetch");
 const fs = require("fs");
-const https = require("https");
 const { generateRandomInteger } = require("./util");
 const jimp = require("jimp");
 
-const BASE_URL = "https://instagram.com";
-
 class InstagramPuppet {
+  #base_url = "https://instagram.com";
   #browser = null;
   #page = null;
 
@@ -38,39 +36,9 @@ class InstagramPuppet {
   };
 
   #downloadFileToLocal = async (url, dest, cb) => {
-    // const file = fs.createWriteStream(dest);
-    // const request = https.get(url, (response) => {
-    //   // check if response is success
-    //   if (response.statusCode !== 200) {
-    //     return cb("Response status was " + response.statusCode);
-    //   }
-    //   response.pipe(file);
-    // });
-    // // close() is async, call cb after close completes
-    // file.on("finish", () => file.close(cb));
-    // // check for request error too
-    // request.on("error", (err) => {
-    //   fs.unlink(dest);
-    //   return cb(err?.message);
-    // });
-    // file.on("error", (err) => {
-    //   // Handle errors
-    //   fs.unlink(dest); // Delete the file async. (But we don't check the result)
-    //   return cb(err?.message);
-    // });
     const image = await jimp.read(url);
     image.contain(1080, 1920);
     image.write(dest, cb);
-    // image.on("finish", () => {
-    //   return JSON.stringify({
-    //     response: "File downloaded successfully",
-    //     success: true,
-    //   });
-    // });
-    // image.on("error", (err) => {
-    //   fs.unlink(dest); // Delete the file async. (But we don't check the result)
-    //   throw new Error(err?.message);
-    // });
   };
 
   #removeFileFromLocal = (file_path) => {
@@ -82,11 +50,11 @@ class InstagramPuppet {
   };
 
   initialize = async () => {
-    this.#browser = await puppeteer.launch({ headless: true });
+    this.#browser = await puppeteer.launch({ headless: false });
     this.#page = await this.#browser.newPage();
     process.on("unhandledRejection", (reason, p) => {
       console.log("Unhandled Rejection at: Promise", p, "reason:", reason);
-      this.#browser.close();
+      // this.#browser.close();
     });
   };
 
@@ -95,7 +63,7 @@ class InstagramPuppet {
   };
 
   login = async (username, password, options = {}) => {
-    await this.#page.goto(BASE_URL, { waitUntil: "networkidle2" });
+    await this.#page.goto(this.#base_url, { waitUntil: "networkidle2" });
     if (Array.isArray(global.instagramSession)) {
       await this.#page.setCookie(...global.instagramSession);
       return;
@@ -141,37 +109,13 @@ class InstagramPuppet {
     const link = await randomlySelectedPost?.$eval("a", (a) =>
       a.getAttribute("href")
     );
-    return fetch(`${BASE_URL}${link}?__a=1`);
+    return fetch(`${this.#base_url}${link}?__a=1`);
   };
 
   uploadStory = async (url, file_path, options = {}) => {
-    await this.goto(BASE_URL);
-    // await this.#chooseAppPreference(!!options?.addInstagramToHomeScreen);
+    await this.goto(this.#base_url);
+    await this.#chooseAppPreference(!!options?.addInstagramToHomeScreen);
     // await this.#chooseNotificationPreference(!!options?.allowNotifications);
-    // this.#downloadFileToLocal(url, file_path, (err) => {
-    //   if (err) {
-    //     console.log("Error: ", err);
-    //     return;
-    //   }
-    //   (async () => {
-    //     const camera_selector = "button[class='mTGkH']";
-    //     await this.#page.waitForSelector(camera_selector);
-    //     const [fileChooser] = await Promise.all([
-    //       this.#page.waitForFileChooser(),
-    //       this.#page.click(camera_selector),
-    //     ]);
-    //     fileChooser.isMultiple(false);
-    //     await fileChooser.accept([file_path]);
-    //     const upload_btn = await this.#page.waitForXPath(
-    //       '//*[@id="react-root"]/section/footer/div/div/button'
-    //     );
-    //     await upload_btn.click();
-    //     await this.#page.waitForXPath("/html/body/div[3]/div/div/div/p", {
-    //       visible: true,
-    //     });
-    //     this.#removeFileFromLocal(file_path);
-    //   })();
-    // });
     await this.#downloadFileToLocal(url, file_path, async () => {
       const camera_selector = "button[class='mTGkH']";
       await this.#page.waitForSelector(camera_selector);
@@ -188,28 +132,8 @@ class InstagramPuppet {
       await this.#page.waitForXPath("/html/body/div[3]/div/div/div/p", {
         visible: true,
       });
+      this.#removeFileFromLocal(file_path);
     });
-    // .then(async (res) => {
-    //   console.log(res);
-    //   const camera_selector = "button[class='mTGkH']";
-    //   await this.#page.waitForSelector(camera_selector);
-    //   const [fileChooser] = await Promise.all([
-    //     this.#page.waitForFileChooser(),
-    //     this.#page.click(camera_selector),
-    //   ]);
-    //   fileChooser.isMultiple(false);
-    //   await fileChooser.accept([file_path]);
-    //   const upload_btn = await this.#page.waitForXPath(
-    //     '//*[@id="react-root"]/section/footer/div/div/button'
-    //   );
-    //   await upload_btn.click();
-    //   await this.#page.waitForXPath("/html/body/div[3]/div/div/div/p", {
-    //     visible: true,
-    //   });
-    //   // this.#removeFileFromLocal(file_path);
-    // })
-    // .catch((err) => console.log("Error: ", err));
-    // .finally(() => this.#removeFileFromLocal(file_path));
   };
 
   exit = async () => {

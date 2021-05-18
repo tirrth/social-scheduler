@@ -105,24 +105,18 @@ const automateInstagramStory = async () => {
   await ig.goto(navigateToLink);
   ig.getRandomPostInfo()
     .then((res) => res.json())
-    .then(async (resp) => {
+    .then((resp) => {
       const { shortcode_media } = resp?.graphql;
       const is_video = !!shortcode_media?.is_video;
-      const destination = `/public/images/file.${is_video ? "mp4" : "jpg"}`;
-      const filePath = path.relative(process.cwd(), __dirname + destination);
       let fileLink = shortcode_media?.[is_video ? "video_url" : "display_url"];
-      if (fileLink)
-        ig.downloadFileToLocal(fileLink, filePath, (err) => {
-          if (err) {
-            console.log("Error: ", err);
-            return;
-          }
-          (async () => {
-            await ig.uploadStory(filePath);
-            // await ig.exit();
-            ig.removeFileFromLocal(filePath);
-          })();
-        });
+      if (fileLink) {
+        const destination = `/public/images/file.${is_video ? "mp4" : "jpg"}`;
+        const filePath = path.relative(process.cwd(), __dirname + destination);
+        (async () => {
+          await ig.uploadStory(fileLink, filePath);
+          // await ig.exit();
+        })();
+      }
     })
     .catch((err) => console.log("Error: " + err));
 };

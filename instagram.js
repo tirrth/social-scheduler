@@ -140,7 +140,6 @@ class InstagramPuppet {
     await this.goto(BASE_URL);
     await this.#chooseAppPreference(!!options?.addInstagramToHomeScreen);
     await this.#chooseNotificationPreference(!!options?.allowNotifications);
-    // await this.page.waitForTimeout(2000);
     const camera_selector = "button[class='mTGkH']";
     await this.page.waitForSelector(camera_selector);
     const [fileChooser] = await Promise.all([

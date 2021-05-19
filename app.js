@@ -64,6 +64,7 @@ const knowledge = [
 ];
 
 const nature = [
+  "nature",
   "#nature",
   "#naturephotography",
   "nature.geography",
@@ -84,41 +85,58 @@ const _getInstagramPage = () => {
   return instagram_pages.motivational;
 };
 
-const _getRandomNavigationLink = () => {
+const _getRandomPage = () => {
   const instagram_page = _getInstagramPage();
   const random_page_no = generateRandomInteger(0, instagram_page.length - 1);
   const random_page = `${instagram_page[random_page_no]}`;
-  // const random_page = "quotes";
-  if (random_page.startsWith("#")) {
-    return `https://instagram.com/explore/tags/${random_page.substring(1)}`;
-  }
-  return `https://instagram.com/${random_page}`;
+  // const random_page = "#video";
+  // if (random_page.startsWith("#")) {
+  //   return `https://instagram.com/explore/tags/${random_page.substring(1)}`;
+  // }
+  // return `https://instagram.com/${random_page}`;
+  return random_page;
 };
 
 const automateInstagramStory = async () => {
-  const navigateToLink = _getRandomNavigationLink();
+  const navigateToPage = _getRandomPage();
   const ig = new InstagramPuppet();
   await ig.initialize();
   await ig.emulateTo("iPhone 8");
   const { CLIENT_ID, SECRET_KEY } = process.env;
   await ig.login(CLIENT_ID, SECRET_KEY);
-  await ig.goto(navigateToLink);
-  ig.getRandomPostInfo()
-    .then((res) => res.json())
+  ig.getRandomImageFromPage(navigateToPage)
     .then((resp) => {
-      const { shortcode_media } = resp?.graphql;
-      const is_video = !!shortcode_media?.is_video;
-      let fileLink = shortcode_media?.[is_video ? "video_url" : "display_url"];
-      if (fileLink) {
-        const destination = `/public/images/file.${is_video ? "mp4" : "jpg"}`;
+      const { display_url } = resp?.node;
+      if (display_url) {
+        const destination = "/public/images/file.jpeg";
         const filePath = path.relative(process.cwd(), __dirname + destination);
         (async () => {
-          await ig.uploadStory(fileLink, filePath, { is_video });
-          // await ig.exit();
+          await ig.uploadStory(display_url, filePath, {
+            callback: async () => await ig.exit(),
+          });
         })();
       }
     })
-    .catch((err) => console.log("Error: " + err));
+    .catch((err) => console.log(err));
+  // await ig.goto(navigateToLink);
+  // ig.getRandomPostInfo()
+  //   .then((res) => res.json())
+  //   .then((resp) => {
+  //     const { shortcode_media } = resp?.graphql;
+  //     const is_video = !!shortcode_media?.is_video;
+  //     let fileLink = shortcode_media?.[is_video ? "video_url" : "display_url"];
+  //     if (fileLink) {
+  //       const destination = `/public/images/file.${is_video ? "mp4" : "jpeg"}`;
+  //       const filePath = path.relative(process.cwd(), __dirname + destination);
+  //       (async () => {
+  //         await ig.uploadStory(fileLink, filePath, {
+  //           is_video,
+  //           callback: async () => await ig.exit(),
+  //         });
+  //       })();
+  //     }
+  //   })
+  //   .catch((err) => console.log("Error: " + err));
 };
 
 global.instagramSession = [

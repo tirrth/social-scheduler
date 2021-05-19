@@ -1,11 +1,12 @@
 const puppeteer = require("puppeteer");
 const fetch = require("node-fetch");
+const https = require("https");
 const fs = require("fs");
 const { generateRandomInteger } = require("./util");
 const jimp = require("jimp");
 
 class InstagramPuppet {
-  #base_url = "https://instagram.com";
+  #BASE_URL = "https://instagram.com";
   #browser = null;
   #page = null;
 
@@ -17,16 +18,6 @@ class InstagramPuppet {
     await this.#page.click(app_preference);
   };
 
-  #chooseNotificationPreference = async (allow_notifications) => {
-    const notification_preference = `body > div.RnEpo.Yx5HN > div > div > div > div.mt3GC > button.aOOlW.${
-      allow_notifications ? "bIiDR" : "HoLwm"
-    }`;
-    await this.#page.waitForSelector(notification_preference, {
-      timeout: 10000,
-    });
-    await this.#page.click(notification_preference);
-  };
-
   #chooseLoginPreference = async (save_login_info) => {
     const login_preference = `#react-root > section > main > div > div > ${
       save_login_info ? "section > " : ""
@@ -35,13 +26,36 @@ class InstagramPuppet {
     await this.#page.click(login_preference);
   };
 
-  #downloadFileToLocal = async (url, dest, cb) => {
-    const image = await jimp.read(url);
-    image.contain(1080, 1920);
-    image.write(dest, cb);
+  #downloadStoryToLocal = async ({ url, dest, cb, is_video, err }) => {
+    if (!is_video) {
+      try {
+        const image = await jimp.read(url);
+        image.contain(1080, 1920);
+        image.write(dest, cb);
+      } catch (e) {
+        err(e);
+      }
+    } else {
+      const file = fs.createWriteStream(dest);
+      const request = https.get(url, (response) => {
+        if (response.statusCode !== 200) {
+          return cb("Response status was " + response.statusCode);
+        }
+        response.pipe(file);
+      });
+      file.on("finish", () => file.close(cb));
+      request.on("error", (error) => {
+        fs.unlink(dest);
+        err(error);
+      });
+      file.on("error", (error) => {
+        fs.unlink(dest);
+        err(error);
+      });
+    }
   };
 
-  #removeFileFromLocal = (file_path) => {
+  #removeStoryFromLocal = (file_path) => {
     try {
       fs.unlinkSync(file_path);
     } catch (err) {
@@ -63,7 +77,7 @@ class InstagramPuppet {
   };
 
   login = async (username, password, options = {}) => {
-    await this.#page.goto(this.#base_url, { waitUntil: "networkidle2" });
+    await this.#page.goto(this.#BASE_URL, { waitUntil: "networkidle2" });
     if (Array.isArray(global.instagramSession)) {
       await this.#page.setCookie(...global.instagramSession);
       return;
@@ -109,30 +123,58 @@ class InstagramPuppet {
     const link = await randomlySelectedPost?.$eval("a", (a) =>
       a.getAttribute("href")
     );
-    return fetch(`${this.#base_url}${link}?__a=1`);
+    return fetch(`${this.#BASE_URL}${link}?__a=1`);
+  };
+
+  getRandomImageFromPage = async (page) => {
+    if (page.startsWith("#")) {
+      var page_link = `${this.#BASE_URL}/explore/tags/${page.substring(1)}`;
+    } else {
+      page_link = `${this.#BASE_URL}/${page}`;
+    }
+    page_link = `${page_link}?__a=1`;
+    return fetch(page_link)
+      .then((res) => res.json())
+      .then((res) => {
+        const image_filtered_edges =
+          res.graphql.user.edge_owner_to_timeline_media.edges.filter(
+            (obj) => !obj.node.is_video
+          );
+        const random_image_no = generateRandomInteger(
+          0,
+          image_filtered_edges.length - 1
+        );
+        return image_filtered_edges[random_image_no];
+      });
   };
 
   uploadStory = async (url, file_path, options = {}) => {
-    await this.goto(this.#base_url);
+    await this.goto(this.#BASE_URL);
     await this.#chooseAppPreference(!!options?.addInstagramToHomeScreen);
-    // await this.#chooseNotificationPreference(!!options?.allowNotifications);
-    await this.#downloadFileToLocal(url, file_path, async () => {
-      const camera_selector = "button[class='mTGkH']";
-      await this.#page.waitForSelector(camera_selector);
-      const [fileChooser] = await Promise.all([
-        this.#page.waitForFileChooser(),
-        this.#page.click(camera_selector),
-      ]);
-      fileChooser.isMultiple(false);
-      await fileChooser.accept([file_path]);
-      const upload_btn = await this.#page.waitForXPath(
-        '//*[@id="react-root"]/section/footer/div/div/button'
-      );
-      await upload_btn.click();
-      await this.#page.waitForXPath("/html/body/div[3]/div/div/div/p", {
-        visible: true,
-      });
-      this.#removeFileFromLocal(file_path);
+    await this.#downloadStoryToLocal({
+      url,
+      dest: file_path,
+      is_video: !!options.is_video,
+      cb: async () => {
+        const camera_selector = "button[class='mTGkH']";
+        await this.#page.waitForSelector(camera_selector);
+        const [fileChooser] = await Promise.all([
+          this.#page.waitForFileChooser(),
+          this.#page.click(camera_selector),
+        ]);
+        fileChooser.isMultiple(false);
+        await fileChooser.accept([file_path]);
+        const upload_btn = await this.#page.waitForXPath(
+          '//*[@id="react-root"]/section/footer/div/div/button'
+        );
+        await upload_btn.click();
+        await this.#page.waitForXPath("/html/body/div[3]/div/div/div/p", {
+          visible: true,
+        });
+        await options.callback();
+        this.#removeStoryFromLocal(file_path);
+      },
+      err: async (err) => (console.error(err), await this.exit()),
     });
   };
 

@@ -4,11 +4,17 @@ const https = require("https");
 const fs = require("fs");
 const { generateRandomInteger } = require("./util");
 const jimp = require("jimp");
+const path = require("path");
 
 class InstagramPuppet {
-  #BASE_URL = "https://instagram.com";
+  #EXT_INSSIST_PATH = "extensions/inssist";
+  #INSTAGRAM_BASE_URL = "https://instagram.com";
+  #EXT_BASE_URL =
+    "chrome-extension://bcocdbombenodlegijagbhdjbifpiijp/inssist.html";
+  #BASE_URL = `${this.#EXT_BASE_URL}#${this.#INSTAGRAM_BASE_URL}`;
   #browser = null;
   #page = null;
+  #frame = null;
 
   #chooseAppPreference = async (add_to_home) => {
     const app_preference = `body > div.RnEpo.Yx5HN > div > div > div > div.mt3GC > button.aOOlW.${
@@ -64,8 +70,20 @@ class InstagramPuppet {
   };
 
   initialize = async () => {
-    this.#browser = await puppeteer.launch({ headless: false });
-    this.#page = await this.#browser.newPage();
+    const browser = await puppeteer.launch({
+      headless: false,
+      args: [
+        `--disable-extensions-except=${this.#EXT_INSSIST_PATH}`,
+        `--load-extension=${this.#EXT_INSSIST_PATH}`,
+        "--start-fullscreen",
+        "--disable-web-security",
+        "--disable-features=IsolateOrigins,site-per-process",
+      ],
+    });
+    const page = await browser.newPage();
+    await page._client.send("Emulation.clearDeviceMetricsOverride");
+    this.#browser = browser;
+    this.#page = page;
     process.on("unhandledRejection", (reason, p) => {
       console.log("Unhandled Rejection at: Promise", p, "reason:", reason);
       // this.#browser.close();
@@ -77,56 +95,54 @@ class InstagramPuppet {
   };
 
   login = async (username, password, options = {}) => {
-    await this.#page.goto(this.#BASE_URL, { waitUntil: "networkidle2" });
+    await this.#page.goto("https://insta-mobile.netlify.app", {
+      waitUntil: "networkidle2",
+    });
+
+    // const getStartedButton = await this.#page.waitForXPath(
+    //   '//*[@id="app"]/div[1]/div[2]/div[2]/div[2]/div/button'
+    // );
+    // await getStartedButton.click();
+    // return;
     if (Array.isArray(global.instagramSession)) {
       await this.#page.setCookie(...global.instagramSession);
       return;
     }
-    const loginButton = await this.#page.waitForXPath(
+
+    await this.#page.waitForSelector("iframe");
+    const instagram_frame = await this.#page.frames()[1];
+    this.#frame = instagram_frame;
+    const loginButton = await this.#frame.waitForXPath(
       '//*[@id="react-root"]/section/main/article/div/div/div/div[3]/button[1]'
     );
     await loginButton.click();
-    await this.#page.type("input[name=username]", username);
-    await this.#page.type("input[name=password]", password);
-    await this.#page.click("button[type=submit]");
+
+    // console.log(this.#page.mainFrame().childFrames()[0]);
+    // const elementHandle = this.#page.mainFrame().childFrames()[0];
+    // return;
+    // const elementHandle = await this.#page.$("iframe");
+    // const elementHandle = await this.#page.waitForXPath(
+    //   '//*[@id="app"]/div[1]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/iframe'
+    // );
+    // const frame = await this.#page.frames()[1];
+
+    // console.log(frame[1]);
+    // return;
+    // await this.#page.waitForSelector("iframe");
+    // const frameHandle = await page.$("iframe");
+    // const frame = await frameHandle.contentFrame();
+    await this.#frame.waitForSelector("input[name=username]");
+    await this.#frame.type("input[name=username]", username);
+    await this.#frame.type("input[name=password]", password);
+    await this.#frame.click("button[type=submit]");
     await this.#chooseLoginPreference(!!options?.saveLoginInfo);
     global.instagramSession = await this.#page.cookies();
-  };
-
-  searchFor = async (searchText) => {
-    await this.#page.click(
-      "#react-root > section > nav.NXc7H.f11OC > div > div > div.KGiwt > div > div > div:nth-child(2) > a"
-    );
-    const search_input = "input[placeholder=Search]";
-    await this.#page.waitForSelector(search_input);
-    await this.#page.type(search_input, searchText);
-  };
-
-  selectSearchResult = async (options = {}) => {
-    const selectSearchResult = `#react-root > section > main > div > div > ul > li:nth-child(${
-      options.search_result || 1
-    })`;
-    await this.#page.waitForSelector(selectSearchResult);
-    await this.#page.click(selectSearchResult);
   };
 
   goto = async (url) =>
     await this.#page.goto(url, { waitUntil: "networkidle2" });
 
-  getRandomPostInfo = async () => {
-    const post_selector = "div[class='v1Nh3 kIKUG  _bz0w']";
-    await this.#page.waitForSelector(post_selector);
-    const posts = await this.#page.$$(post_selector);
-    const postsCount = posts.length;
-    const randomlyGeneratedNumber = generateRandomInteger(0, postsCount - 1);
-    const randomlySelectedPost = posts[randomlyGeneratedNumber];
-    const link = await randomlySelectedPost?.$eval("a", (a) =>
-      a.getAttribute("href")
-    );
-    return fetch(`${this.#BASE_URL}${link}?__a=1`);
-  };
-
-  getRandomImageFromPage = async (page) => {
+  getRandomPostFromPage = async (page) => {
     if (page.startsWith("#")) {
       var page_link = `${this.#BASE_URL}/explore/tags/${page.substring(1)}`;
     } else {
@@ -151,31 +167,48 @@ class InstagramPuppet {
   uploadStory = async (url, file_path, options = {}) => {
     await this.goto(this.#BASE_URL);
     await this.#chooseAppPreference(!!options?.addInstagramToHomeScreen);
-    await this.#downloadStoryToLocal({
-      url,
-      dest: file_path,
-      is_video: !!options.is_video,
-      cb: async () => {
-        const camera_selector = "button[class='mTGkH']";
-        await this.#page.waitForSelector(camera_selector);
-        const [fileChooser] = await Promise.all([
-          this.#page.waitForFileChooser(),
-          this.#page.click(camera_selector),
-        ]);
-        fileChooser.isMultiple(false);
-        await fileChooser.accept([file_path]);
-        const upload_btn = await this.#page.waitForXPath(
-          '//*[@id="react-root"]/section/footer/div/div/button'
-        );
-        await upload_btn.click();
-        await this.#page.waitForXPath("/html/body/div[3]/div/div/div/p", {
-          visible: true,
-        });
-        await options.callback();
-        this.#removeStoryFromLocal(file_path);
-      },
-      err: async (err) => (console.error(err), await this.exit()),
+    const camera_selector = "button[class='mTGkH']";
+    await this.#page.waitForSelector(camera_selector);
+    const [fileChooser] = await Promise.all([
+      this.#page.waitForFileChooser(),
+      this.#page.click(camera_selector),
+    ]);
+    fileChooser.isMultiple(false);
+    await fileChooser.accept([file_path]);
+    const upload_btn = await this.#page.waitForXPath(
+      '//*[@id="react-root"]/section/footer/div/div/button'
+    );
+    await upload_btn.click();
+    await this.#page.waitForXPath("/html/body/div[3]/div/div/div/p", {
+      visible: true,
     });
+    await options.callback();
+    // this.#removeStoryFromLocal(file_path);
+    // await this.#downloadStoryToLocal({
+    //   url,
+    //   dest: file_path,
+    //   is_video: !!options.is_video,
+    //   cb: async () => {
+    //     const camera_selector = "button[class='mTGkH']";
+    //     await this.#page.waitForSelector(camera_selector);
+    //     const [fileChooser] = await Promise.all([
+    //       this.#page.waitForFileChooser(),
+    //       this.#page.click(camera_selector),
+    //     ]);
+    //     fileChooser.isMultiple(false);
+    //     await fileChooser.accept([file_path]);
+    //     const upload_btn = await this.#page.waitForXPath(
+    //       '//*[@id="react-root"]/section/footer/div/div/button'
+    //     );
+    //     await upload_btn.click();
+    //     await this.#page.waitForXPath("/html/body/div[3]/div/div/div/p", {
+    //       visible: true,
+    //     });
+    //     await options.callback();
+    //     this.#removeStoryFromLocal(file_path);
+    //   },
+    //   err: async (err) => (console.error(err), await this.exit()),
+    // });
   };
 
   exit = async () => {

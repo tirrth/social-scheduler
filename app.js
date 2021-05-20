@@ -34,6 +34,7 @@ const motivational = [
   "positivevibesquotes",
   "gangsters.quotes",
   "poetry",
+  "humblethepoet",
   "visionofsuccess",
 ];
 
@@ -101,172 +102,164 @@ const automateInstagramStory = async () => {
   const navigateToPage = _getRandomPage();
   const ig = new InstagramPuppet();
   await ig.initialize();
-  await ig.emulateTo("iPhone 8");
+  // await ig.emulateTo("iPhone 8");
   const { CLIENT_ID, SECRET_KEY } = process.env;
   await ig.login(CLIENT_ID, SECRET_KEY);
-  ig.getRandomImageFromPage(navigateToPage)
-    .then((resp) => {
-      const { display_url } = resp?.node;
-      if (display_url) {
-        const destination = "/public/images/file.jpeg";
-        const filePath = path.relative(process.cwd(), __dirname + destination);
-        (async () => {
-          await ig.uploadStory(display_url, filePath, {
-            callback: async () => await ig.exit(),
-          });
-        })();
-      }
-    })
-    .catch((err) => console.log(err));
-  // await ig.goto(navigateToLink);
-  // ig.getRandomPostInfo()
-  //   .then((res) => res.json())
+  // await ig.goto(
+  //   "chrome-extension://bcocdbombenodlegijagbhdjbifpiijp/inssist.html"
+  // );
+  // return;
+  const destination = "/public/images/file.mp4";
+  const filePath = path.relative(process.cwd(), __dirname + destination);
+  (async () => {
+    await ig.uploadStory("display_url", filePath, {
+      callback: async () => await ig.exit(),
+    });
+  })();
+  // ig.getRandomPostFromPage(navigateToPage)
   //   .then((resp) => {
-  //     const { shortcode_media } = resp?.graphql;
-  //     const is_video = !!shortcode_media?.is_video;
-  //     let fileLink = shortcode_media?.[is_video ? "video_url" : "display_url"];
-  //     if (fileLink) {
-  //       const destination = `/public/images/file.${is_video ? "mp4" : "jpeg"}`;
+  //     const { display_url } = resp?.node;
+  //     if (display_url) {
+  //       const destination = "/public/images/file.jpeg";
   //       const filePath = path.relative(process.cwd(), __dirname + destination);
   //       (async () => {
-  //         await ig.uploadStory(fileLink, filePath, {
-  //           is_video,
+  //         await ig.uploadStory(display_url, filePath, {
   //           callback: async () => await ig.exit(),
   //         });
   //       })();
   //     }
   //   })
-  //   .catch((err) => console.log("Error: " + err));
+  //   .catch((err) => console.log(err));
 };
 
-global.instagramSession = [
-  {
-    name: "rur",
-    value: "ASH",
-    domain: ".instagram.com",
-    path: "/",
-    expires: -1,
-    size: 6,
-    httpOnly: true,
-    secure: true,
-    session: true,
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "shbid",
-    value: "3725",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1621923871.297525,
-    size: 9,
-    httpOnly: true,
-    secure: true,
-    session: false,
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "shbts",
-    value: "1621319071.2428622",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1621923871.297677,
-    size: 23,
-    httpOnly: true,
-    secure: true,
-    session: false,
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "sessionid",
-    value: "34723755971%3ATsfollXdjiLP7A%3A13",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1652855070.406857,
-    size: 42,
-    httpOnly: true,
-    secure: true,
-    session: false,
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "mid",
-    value: "YKNdmgAAAAE8InmuexfI4jfvaA0y",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1684391066.331293,
-    size: 31,
-    httpOnly: false,
-    secure: true,
-    session: false,
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "csrftoken",
-    value: "Z0WhczYGbrsVe60ZN52khDtOpbeYQoLg",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1652768672.025655,
-    size: 41,
-    httpOnly: false,
-    secure: true,
-    session: false,
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "ig_nrcb",
-    value: "1",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1652855065.643324,
-    size: 8,
-    httpOnly: false,
-    secure: true,
-    session: false,
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "ds_user_id",
-    value: "34723755971",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1629095072.025793,
-    size: 21,
-    httpOnly: false,
-    secure: true,
-    session: false,
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "ig_did",
-    value: "745707D4-7FF9-4D9D-8435-94F86337FADE",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1684391065.643135,
-    size: 42,
-    httpOnly: true,
-    secure: true,
-    session: false,
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-];
+// global.instagramSession = [
+//   {
+//     name: "rur",
+//     value: "ASH",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: -1,
+//     size: 6,
+//     httpOnly: true,
+//     secure: true,
+//     session: true,
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "shbid",
+//     value: "3725",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1621923871.297525,
+//     size: 9,
+//     httpOnly: true,
+//     secure: true,
+//     session: false,
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "shbts",
+//     value: "1621319071.2428622",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1621923871.297677,
+//     size: 23,
+//     httpOnly: true,
+//     secure: true,
+//     session: false,
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "sessionid",
+//     value: "34723755971%3ATsfollXdjiLP7A%3A13",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1652855070.406857,
+//     size: 42,
+//     httpOnly: true,
+//     secure: true,
+//     session: false,
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "mid",
+//     value: "YKNdmgAAAAE8InmuexfI4jfvaA0y",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1684391066.331293,
+//     size: 31,
+//     httpOnly: false,
+//     secure: true,
+//     session: false,
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "csrftoken",
+//     value: "Z0WhczYGbrsVe60ZN52khDtOpbeYQoLg",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1652768672.025655,
+//     size: 41,
+//     httpOnly: false,
+//     secure: true,
+//     session: false,
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "ig_nrcb",
+//     value: "1",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1652855065.643324,
+//     size: 8,
+//     httpOnly: false,
+//     secure: true,
+//     session: false,
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "ds_user_id",
+//     value: "34723755971",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1629095072.025793,
+//     size: 21,
+//     httpOnly: false,
+//     secure: true,
+//     session: false,
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "ig_did",
+//     value: "745707D4-7FF9-4D9D-8435-94F86337FADE",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1684391065.643135,
+//     size: 42,
+//     httpOnly: true,
+//     secure: true,
+//     session: false,
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+// ];
 automateInstagramStory();
 
 // cron.schedule("0 0 * * * *", _postStoryOnInstagram);

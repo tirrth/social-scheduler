@@ -5,6 +5,7 @@ const fs = require("fs");
 const { generateRandomInteger } = require("./util");
 const jimp = require("jimp");
 const path = require("path");
+const Xvfb = require("xvfb");
 
 class InstagramPuppet {
   #EXT_INSSIST_PATH = "extensions/inssist";
@@ -13,6 +14,7 @@ class InstagramPuppet {
     "chrome-extension://bcocdbombenodlegijagbhdjbifpiijp/inssist.html";
   #BASE_URL = `${this.#EXT_BASE_URL}#${this.#INSTAGRAM_BASE_URL}`;
   #browser = null;
+  #xvfb = null;
   #page = null;
   #frame = null;
 
@@ -24,12 +26,12 @@ class InstagramPuppet {
     await this.#page.click(app_preference);
   };
 
-  #chooseLoginPreference = async (save_login_info) => {
+  #chooseLoginPreference = async (save_login_info, page = this.#page) => {
     const login_preference = `#react-root > section > main > div > div > ${
       save_login_info ? "section > " : ""
     }div > button`;
-    await this.#page.waitForSelector(login_preference);
-    await this.#page.click(login_preference);
+    await page.waitForSelector(login_preference);
+    await page.click(login_preference);
   };
 
   #downloadStoryToLocal = async ({ url, dest, cb, is_video, err }) => {
@@ -70,6 +72,13 @@ class InstagramPuppet {
   };
 
   initialize = async () => {
+    this.#xvfb = new Xvfb({
+      silent: false,
+      xvfb_args: ["-screen", "0", "1280x720x24", "-ac"],
+    });
+    this.#xvfb.start((err) => {
+      if (err) console.error(err);
+    });
     const browser = await puppeteer.launch({
       headless: false,
       args: [
@@ -86,7 +95,7 @@ class InstagramPuppet {
     this.#page = page;
     process.on("unhandledRejection", (reason, p) => {
       console.log("Unhandled Rejection at: Promise", p, "reason:", reason);
-      // this.#browser.close();
+      // this.exit();
     });
   };
 
@@ -98,17 +107,10 @@ class InstagramPuppet {
     await this.#page.goto("https://insta-mobile.netlify.app", {
       waitUntil: "networkidle2",
     });
-
-    // const getStartedButton = await this.#page.waitForXPath(
-    //   '//*[@id="app"]/div[1]/div[2]/div[2]/div[2]/div/button'
-    // );
-    // await getStartedButton.click();
-    // return;
     if (Array.isArray(global.instagramSession)) {
       await this.#page.setCookie(...global.instagramSession);
       return;
     }
-
     await this.#page.waitForSelector("iframe");
     const instagram_frame = await this.#page.frames()[1];
     this.#frame = instagram_frame;
@@ -117,25 +119,11 @@ class InstagramPuppet {
     );
     await loginButton.click();
 
-    // console.log(this.#page.mainFrame().childFrames()[0]);
-    // const elementHandle = this.#page.mainFrame().childFrames()[0];
-    // return;
-    // const elementHandle = await this.#page.$("iframe");
-    // const elementHandle = await this.#page.waitForXPath(
-    //   '//*[@id="app"]/div[1]/div[2]/div[2]/div[1]/div[2]/div/div/div[3]/iframe'
-    // );
-    // const frame = await this.#page.frames()[1];
-
-    // console.log(frame[1]);
-    // return;
-    // await this.#page.waitForSelector("iframe");
-    // const frameHandle = await page.$("iframe");
-    // const frame = await frameHandle.contentFrame();
     await this.#frame.waitForSelector("input[name=username]");
     await this.#frame.type("input[name=username]", username);
     await this.#frame.type("input[name=password]", password);
     await this.#frame.click("button[type=submit]");
-    await this.#chooseLoginPreference(!!options?.saveLoginInfo);
+    await this.#chooseLoginPreference(!!options?.saveLoginInfo, this.#frame);
     global.instagramSession = await this.#page.cookies();
   };
 
@@ -213,6 +201,7 @@ class InstagramPuppet {
 
   exit = async () => {
     await this.#browser.close();
+    this.#xvfb.stop();
   };
 }
 

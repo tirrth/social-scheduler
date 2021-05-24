@@ -1,8 +1,1 @@
-package x11-xkb-utils 
-package xvfb 
-package x11-xkb-utils 
-package xfonts-100dpi 
-package xfonts-75dpi 
-package xfonts-scalable 
-package xfonts-cyrillic 
-package libxfont1 xvfb
+x11-xkb-utils xvfb x11-xkb-utils xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic libxfont1 xvfb

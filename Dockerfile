@@ -15,7 +15,7 @@ COPY . /app
 RUN npm i
 
 # make sure we can run without a UI
-ENV DISPLAY :99
 ENV CLIENT_ID john.macquoid
 ENV SECRET_KEY @$dfghjk!Instagram123@
+ENV DISPLAY :99
 CMD Xvfb :99 -screen 0 1024x768x16 & npm start

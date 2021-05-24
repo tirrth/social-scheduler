@@ -97,7 +97,7 @@ const automateInstagramStory = async () => {
   await ig.login(CLIENT_ID, SECRET_KEY);
   ig.getRandomPostFromPage(navigateToPage)
     .then((resp) => {
-      const { display_url } = resp?.node;
+      const display_url = resp?.node?.display_url;
       if (display_url) {
         const destination = "/public/files/file.jpeg";
         const filePath = path.relative(process.cwd(), __dirname + destination);

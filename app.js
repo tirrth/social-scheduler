@@ -76,27 +76,16 @@ const nature = [
   "nature._.videos",
 ];
 
-const instagram_pages = {
-  memes,
-  motivational,
-  cute_animals,
-  knowledge,
-  nature,
-};
-
-const _getInstagramPage = () => {
-  return instagram_pages.motivational;
+const _getInstagramPageCategory = () => {
+  const categories = [memes, motivational, cute_animals, knowledge, nature];
+  const random_category_no = generateRandomInteger(0, categories.length - 1);
+  return categories[random_category_no];
 };
 
 const _getRandomPage = () => {
-  const instagram_page = _getInstagramPage();
+  const instagram_page = _getInstagramPageCategory();
   const random_page_no = generateRandomInteger(0, instagram_page.length - 1);
   const random_page = `${instagram_page[random_page_no]}`;
-  // const random_page = "#video";
-  // if (random_page.startsWith("#")) {
-  //   return `https://instagram.com/explore/tags/${random_page.substring(1)}`;
-  // }
-  // return `https://instagram.com/${random_page}`;
   return random_page;
 };
 
@@ -104,18 +93,8 @@ const automateInstagramStory = async () => {
   const navigateToPage = _getRandomPage();
   const ig = new InstagramPuppet();
   await ig.initialize();
-  // await ig.emulateTo("iPhone 8");
   const { CLIENT_ID, SECRET_KEY } = process.env;
   await ig.login(CLIENT_ID, SECRET_KEY);
-  await ig.goto("https://insta-mobile.netlify.app");
-  // return;
-  // const destination = "/public/files/instagram.mp4";
-  // const filePath = path.relative(process.cwd(), __dirname + destination);
-  // (async () => {
-  //   await ig.uploadStory("display_url", filePath, {
-  //     callback: async () => await ig.exit(),
-  //   });
-  // })();
   ig.getRandomPostFromPage(navigateToPage)
     .then((resp) => {
       const { display_url } = resp?.node;
@@ -132,167 +111,146 @@ const automateInstagramStory = async () => {
     .catch((err) => console.log(err));
 };
 
-global.instagramSession = [
-  {
-    name: "rur",
-    value: "ASH",
-    domain: ".instagram.com",
-    path: "/",
-    expires: -1,
-    size: 6,
-    httpOnly: true,
-    secure: true,
-    session: true,
-    sameSite: "None",
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "shbid",
-    value: "19630",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1622427204.092547,
-    size: 10,
-    httpOnly: true,
-    secure: true,
-    session: false,
-    sameSite: "None",
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "shbts",
-    value: "1621822404.2825937",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1622427204.092612,
-    size: 23,
-    httpOnly: true,
-    secure: true,
-    session: false,
-    sameSite: "None",
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "sessionid",
-    value: "35637751930%3AmhFjcYpqizu9lQ%3A1",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1653358403.11667,
-    size: 41,
-    httpOnly: true,
-    secure: true,
-    session: false,
-    sameSite: "None",
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "ds_user_id",
-    value: "35637751930",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1629598405.082684,
-    size: 21,
-    httpOnly: false,
-    secure: true,
-    session: false,
-    sameSite: "None",
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "ig_did",
-    value: "6D82A395-8041-48FC-B5D9-41EAFA8E4E29",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1684894398.877367,
-    size: 42,
-    httpOnly: true,
-    secure: true,
-    session: false,
-    sameSite: "None",
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "mid",
-    value: "YKsLvwAEAAFIoiuBFou8iLPthP75",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1684894398.877292,
-    size: 31,
-    httpOnly: false,
-    secure: true,
-    session: false,
-    sameSite: "None",
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "csrftoken",
-    value: "tqj5bNuSHoszdBwT2a6mUBjFtYFvyJgj",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1653272005.082586,
-    size: 41,
-    httpOnly: false,
-    secure: true,
-    session: false,
-    sameSite: "None",
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-  {
-    name: "ig_nrcb",
-    value: "1",
-    domain: ".instagram.com",
-    path: "/",
-    expires: 1653358398.877414,
-    size: 8,
-    httpOnly: false,
-    secure: true,
-    session: false,
-    sameSite: "None",
-    sameParty: false,
-    sourceScheme: "Secure",
-    sourcePort: 443,
-  },
-];
+// global.instagramSession = [
+//   {
+//     name: "rur",
+//     value: "ASH",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: -1,
+//     size: 6,
+//     httpOnly: true,
+//     secure: true,
+//     session: true,
+//     sameSite: "None",
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "shbid",
+//     value: "19630",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1622427204.092547,
+//     size: 10,
+//     httpOnly: true,
+//     secure: true,
+//     session: false,
+//     sameSite: "None",
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "shbts",
+//     value: "1621822404.2825937",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1622427204.092612,
+//     size: 23,
+//     httpOnly: true,
+//     secure: true,
+//     session: false,
+//     sameSite: "None",
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "sessionid",
+//     value: "35637751930%3AmhFjcYpqizu9lQ%3A1",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1653358403.11667,
+//     size: 41,
+//     httpOnly: true,
+//     secure: true,
+//     session: false,
+//     sameSite: "None",
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "ds_user_id",
+//     value: "35637751930",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1629598405.082684,
+//     size: 21,
+//     httpOnly: false,
+//     secure: true,
+//     session: false,
+//     sameSite: "None",
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "ig_did",
+//     value: "6D82A395-8041-48FC-B5D9-41EAFA8E4E29",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1684894398.877367,
+//     size: 42,
+//     httpOnly: true,
+//     secure: true,
+//     session: false,
+//     sameSite: "None",
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "mid",
+//     value: "YKsLvwAEAAFIoiuBFou8iLPthP75",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1684894398.877292,
+//     size: 31,
+//     httpOnly: false,
+//     secure: true,
+//     session: false,
+//     sameSite: "None",
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "csrftoken",
+//     value: "tqj5bNuSHoszdBwT2a6mUBjFtYFvyJgj",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1653272005.082586,
+//     size: 41,
+//     httpOnly: false,
+//     secure: true,
+//     session: false,
+//     sameSite: "None",
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+//   {
+//     name: "ig_nrcb",
+//     value: "1",
+//     domain: ".instagram.com",
+//     path: "/",
+//     expires: 1653358398.877414,
+//     size: 8,
+//     httpOnly: false,
+//     secure: true,
+//     session: false,
+//     sameSite: "None",
+//     sameParty: false,
+//     sourceScheme: "Secure",
+//     sourcePort: 443,
+//   },
+// ];
 automateInstagramStory();
 
-// (async () => {
-//   var xvfb = new Xvfb({
-//     silent: true,
-//     xvfb_args: ["-screen", "0", "1280x720x24", "-ac"],
-//   });
-//   xvfb.start((err) => {
-//     if (err) console.error(err);
-//   });
-//   console.log("_display =", xvfb._display);
-//   const browser = await puppeteer.launch({
-//     headless: false,
-//     defaultViewport: null, //otherwise it defaults to 800x600
-//     args: ["--no-sandbox", "--start-fullscreen", "--display=" + xvfb._display],
-//   });
-//   const page = await browser.newPage();
-// await page.goto(`https://wikipedia.org`, { waitUntil: "networkidle2" });
-// await page.screenshot({ path: "result.png" });
-//   await browser.close();
-//   xvfb.stop();
-// })();
-
-// cron.schedule("0 0 * * * *", _postStoryOnInstagram);
+// cron.schedule("0 0 * * * *", automateInstagramStory);
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));

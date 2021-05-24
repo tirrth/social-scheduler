@@ -4,15 +4,16 @@ const https = require("https");
 const fs = require("fs");
 const { generateRandomInteger } = require("./util");
 const jimp = require("jimp");
-const path = require("path");
-const Xvfb = require("xvfb");
+// const path = require("path");
+// const Xvfb = require("xvfb");
 
 class InstagramPuppet {
-  #EXT_INSSIST_PATH = "extensions/inssist";
+  #BASE_PATH = process.cwd();
+  #EXT_INSSIST_PATH = `${this.#BASE_PATH}/extensions/inssist`;
   #INSTAGRAM_BASE_URL = "https://instagram.com";
-  #EXT_BASE_URL =
-    "chrome-extension://bcocdbombenodlegijagbhdjbifpiijp/inssist.html";
-  #BASE_URL = `${this.#EXT_BASE_URL}#${this.#INSTAGRAM_BASE_URL}`;
+  // #EXT_BASE_URL =
+  //   "chrome-extension://bcocdbombenodlegijagbhdjbifpiijp/inssist.html";
+  // #BASE_URL = `${this.#EXT_BASE_URL}#${this.#INSTAGRAM_BASE_URL}`;
   #browser = null;
   #xvfb = null;
   #page = null;
@@ -27,7 +28,7 @@ class InstagramPuppet {
   };
 
   #chooseLoginPreference = async (save_login_info, page = this.#page) => {
-    const login_preference = `#react-root > section > main > div > div > ${
+    const login_preference = `#react-root > section > main > div > div > div > ${
       save_login_info ? "section > " : ""
     }div > button`;
     await page.waitForSelector(login_preference);
@@ -71,15 +72,22 @@ class InstagramPuppet {
     }
   };
 
+  #getInstagramFrame = async (page) => {
+    await page.waitForSelector("iframe");
+    return await page.frames()[1];
+  };
+
   initialize = async () => {
-    this.#xvfb = new Xvfb({
-      silent: false,
-      xvfb_args: ["-screen", "0", "1280x720x24", "-ac"],
-    });
-    this.#xvfb.start((err) => {
-      if (err) console.error(err);
-    });
+    // this.#xvfb = new Xvfb({
+    //   silent: true,
+    //   xvfb_args: ["-screen", "0", "1280x720x24", "-ac"],
+    // });
+    // this.#xvfb.start((err) => {
+    //   err && console.error("Xvfb Error =", err);
+    //   err && this.exit();
+    // });
     const browser = await puppeteer.launch({
+      product: "chrome",
       headless: false,
       args: [
         `--disable-extensions-except=${this.#EXT_INSSIST_PATH}`,
@@ -95,7 +103,7 @@ class InstagramPuppet {
     this.#page = page;
     process.on("unhandledRejection", (reason, p) => {
       console.log("Unhandled Rejection at: Promise", p, "reason:", reason);
-      // this.exit();
+      this.exit();
     });
   };
 
@@ -104,27 +112,26 @@ class InstagramPuppet {
   };
 
   login = async (username, password, options = {}) => {
-    await this.#page.goto("https://insta-mobile.netlify.app", {
+    await this.#page.goto("https://www.instagram.com/", {
       waitUntil: "networkidle2",
     });
-    if (Array.isArray(global.instagramSession)) {
+    const { instagramSession } = global;
+    if (Array.isArray(instagramSession) && instagramSession.length) {
       await this.#page.setCookie(...global.instagramSession);
       return;
     }
-    await this.#page.waitForSelector("iframe");
-    const instagram_frame = await this.#page.frames()[1];
-    this.#frame = instagram_frame;
-    const loginButton = await this.#frame.waitForXPath(
-      '//*[@id="react-root"]/section/main/article/div/div/div/div[3]/button[1]'
-    );
-    await loginButton.click();
-
-    await this.#frame.waitForSelector("input[name=username]");
-    await this.#frame.type("input[name=username]", username);
-    await this.#frame.type("input[name=password]", password);
-    await this.#frame.click("button[type=submit]");
-    await this.#chooseLoginPreference(!!options?.saveLoginInfo, this.#frame);
+    // this.#frame = await this.#getInstagramFrame(this.#page);
+    // const loginButton = await this.#page.waitForXPath(
+    //   '//*[@id="react-root"]/section/main/article/div/div/div/div[3]/button[1]'
+    // );
+    // await loginButton.click();
+    await this.#page.waitForSelector("input[name=username]");
+    await this.#page.type("input[name=username]", username);
+    await this.#page.type("input[name=password]", password);
+    await this.#page.click("button[type=submit]");
+    await this.#chooseLoginPreference(!!options?.saveLoginInfo, this.#page);
     global.instagramSession = await this.#page.cookies();
+    // console.log("global.instagramSession =", global.instagramSession);
   };
 
   goto = async (url) =>
@@ -132,9 +139,11 @@ class InstagramPuppet {
 
   getRandomPostFromPage = async (page) => {
     if (page.startsWith("#")) {
-      var page_link = `${this.#BASE_URL}/explore/tags/${page.substring(1)}`;
+      var page_link = `${
+        this.#INSTAGRAM_BASE_URL
+      }/explore/tags/${page.substring(1)}`;
     } else {
-      page_link = `${this.#BASE_URL}/${page}`;
+      page_link = `${this.#INSTAGRAM_BASE_URL}/${page}`;
     }
     page_link = `${page_link}?__a=1`;
     return fetch(page_link)
@@ -153,24 +162,39 @@ class InstagramPuppet {
   };
 
   uploadStory = async (url, file_path, options = {}) => {
-    await this.goto(this.#BASE_URL);
-    await this.#chooseAppPreference(!!options?.addInstagramToHomeScreen);
+    // await this.goto("https://insta-mobile.netlify.app");
+    // await this.#chooseAppPreference(!!options?.addInstagramToHomeScreen);
+    await this.goto("https://insta-mobile.netlify.app", {
+      waitUntil: "networkidle2",
+    });
+    this.#frame = await this.#getInstagramFrame(this.#page);
     const camera_selector = "button[class='mTGkH']";
-    await this.#page.waitForSelector(camera_selector);
+    await this.#frame.waitForSelector(camera_selector);
     const [fileChooser] = await Promise.all([
       this.#page.waitForFileChooser(),
-      this.#page.click(camera_selector),
+      this.#frame.click(camera_selector),
     ]);
     fileChooser.isMultiple(false);
     await fileChooser.accept([file_path]);
-    const upload_btn = await this.#page.waitForXPath(
-      '//*[@id="react-root"]/section/footer/div/div/button'
-    );
-    await upload_btn.click();
-    await this.#page.waitForXPath("/html/body/div[3]/div/div/div/p", {
+    // const upload_btn = await this.#frame.waitForXPath(
+    //   '//*[@id="react-root"]/section/footer/div/div/button'
+    // );
+    await this.#frame.waitForSelector("div[class='LEJ26'] > button");
+    await this.#frame.evaluate(() => {
+      document.querySelector("div[class='LEJ26'] > button").click();
+    });
+    await this.#frame.waitForSelector("p[class='gxNyb']", {
       visible: true,
     });
     await options.callback();
+    // const upload_selector = "div[class='LEJ26']";
+    // await this.#frame.waitForSelector(upload_selector);
+    // await this.#frame.click(upload_selector);
+    // await upload_btn.click();
+    // await this.#frame.waitForXPath("/html/body/div[3]/div/div/div/p", {
+    //   visible: true,
+    // });
+    // await options.callback();
     // this.#removeStoryFromLocal(file_path);
     // await this.#downloadStoryToLocal({
     //   url,
@@ -201,7 +225,7 @@ class InstagramPuppet {
 
   exit = async () => {
     await this.#browser.close();
-    this.#xvfb.stop();
+    // this.#xvfb.stop((err) => err && console.log(err));
   };
 }
 

@@ -76,6 +76,8 @@ class InstagramPuppet {
       product: "chrome",
       headless: false,
       args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
         `--disable-extensions-except=${this.#EXT_INSSIST_PATH}`,
         `--load-extension=${this.#EXT_INSSIST_PATH}`,
         "--start-fullscreen",

@@ -3,8 +3,7 @@ const fetch = require("node-fetch");
 const https = require("https");
 const fs = require("fs");
 const { generateRandomInteger } = require("./util");
-const jimp = require("jimp");
-
+const os = require("os");
 class InstagramPuppet {
   #BASE_PATH = process.cwd();
   #EXT_INSSIST_PATH = `${this.#BASE_PATH}/extensions/inssist`;
@@ -13,13 +12,13 @@ class InstagramPuppet {
   #page = null;
   #frame = null;
 
-  #chooseAppPreference = async (add_to_home) => {
-    const app_preference = `body > div.RnEpo.Yx5HN > div > div > div > div.mt3GC > button.aOOlW.${
-      add_to_home ? "bIiDR" : "HoLwm"
-    }`;
-    await this.#page.waitForSelector(app_preference);
-    await this.#page.click(app_preference);
-  };
+  // #chooseAppPreference = async (add_to_home) => {
+  //   const app_preference = `body > div.RnEpo.Yx5HN > div > div > div > div.mt3GC > button.aOOlW.${
+  //     add_to_home ? "bIiDR" : "HoLwm"
+  //   }`;
+  //   await this.#page.waitForSelector(app_preference);
+  //   await this.#page.click(app_preference);
+  // };
 
   #chooseLoginPreference = async (save_login_info, page = this.#page) => {
     const login_preference = `#react-root > section > main > div > div > div > ${
@@ -29,33 +28,27 @@ class InstagramPuppet {
     await page.click(login_preference);
   };
 
-  #downloadStoryToLocal = async ({ url, dest, cb, is_video, err }) => {
-    if (!is_video) {
-      try {
-        const image = await jimp.read(url);
-        image.contain(1080, 1920);
-        image.write(dest, cb);
-      } catch (e) {
-        err(e);
+  #downloadStoryToLocal = async ({ url, dest, cb }) => {
+    const file = fs.createWriteStream(dest);
+    const request = https.get(url, (response) => {
+      // check if response is success
+      if (response.statusCode !== 200) {
+        return cb("Response status was " + response.statusCode);
       }
-    } else {
-      const file = fs.createWriteStream(dest);
-      const request = https.get(url, (response) => {
-        if (response.statusCode !== 200) {
-          return cb("Response status was " + response.statusCode);
-        }
-        response.pipe(file);
-      });
-      file.on("finish", () => file.close(cb));
-      request.on("error", (error) => {
-        fs.unlink(dest);
-        err(error);
-      });
-      file.on("error", (error) => {
-        fs.unlink(dest);
-        err(error);
-      });
-    }
+      response.pipe(file);
+    });
+    // close() is async, call cb after close completes
+    file.on("finish", () => file.close(cb));
+    // check for request error too
+    request.on("error", (err) => {
+      fs.unlink(dest);
+      return cb(err?.message);
+    });
+    file.on("error", (err) => {
+      // Handle errors
+      fs.unlink(dest); // Delete the file async. (But we don't check the result)
+      return cb(err?.message);
+    });
   };
 
   #removeStoryFromLocal = (file_path) => {
@@ -68,12 +61,23 @@ class InstagramPuppet {
 
   #getInstagramFrame = async (page) => {
     await page.waitForSelector("iframe");
-    return await page.frames()[1];
+    const frame = await page.frames()[1];
+    return frame;
   };
 
   initialize = async () => {
+    const osPlatform = os.platform(); // possible values are: 'darwin', 'freebsd', 'linux', 'sunos' or 'win32'
+    let executablePath;
+    if (/^win/i.test(osPlatform)) {
+      executablePath = "";
+    } else if (/^linux/i.test(osPlatform)) {
+      executablePath = "/usr/bin/google-chrome";
+    } else if (/^darwin/i.test(osPlatform)) {
+      executablePath = `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome`;
+    }
     const browser = await puppeteer.launch({
       product: "chrome",
+      executablePath,
       headless: false,
       args: [
         "--no-sandbox",
@@ -85,6 +89,10 @@ class InstagramPuppet {
         "--disable-features=IsolateOrigins,site-per-process",
       ],
     });
+    // const browser = await puppeteer.connect({
+    //   browserWSEndpoint:
+    //     "ws://127.0.0.1:9222/devtools/browser/28cb9cf1-b2fd-4af9-ae3e-5d5b774750ad",
+    // });
     const page = await browser.newPage();
     await page._client.send("Emulation.clearDeviceMetricsOverride");
     this.#browser = browser;
@@ -129,25 +137,25 @@ class InstagramPuppet {
     return fetch(page_link)
       .then((res) => res.json())
       .then((res) => {
-        const image_filtered_edges =
-          res?.graphql?.user?.edge_owner_to_timeline_media?.edges?.filter(
-            (obj) => !obj.node.is_video
-          );
-        const random_image_no = generateRandomInteger(
-          0,
-          image_filtered_edges.length - 1
-        );
-        return image_filtered_edges[random_image_no];
+        // const edges =
+        //   res?.graphql?.user?.edge_owner_to_timeline_media?.edges?.filter(
+        //     (obj) => !obj.node.is_video
+        //   );
+        const edges = res?.graphql?.user?.edge_owner_to_timeline_media?.edges;
+        const random_edge_no = generateRandomInteger(0, edges.length - 1);
+        return edges[random_edge_no];
       });
   };
 
-  uploadStory = async (url, file_path, options = {}) => {
+  uploadStory = async (url, file_path, callback) => {
     await this.#downloadStoryToLocal({
       url,
       dest: file_path,
-      is_video: !!options.is_video,
-      cb: async () => {
-        await this.goto("https://insta-mobile.netlify.app", {
+      cb: async (err) => {
+        if (err) {
+          return callback({ success: false, error: err });
+        }
+        await this.#page.goto("https://insta-mobile.netlify.app", {
           waitUntil: "networkidle2",
         });
         this.#frame = await this.#getInstagramFrame(this.#page);
@@ -159,7 +167,6 @@ class InstagramPuppet {
         ]);
         fileChooser.isMultiple(false);
         await fileChooser.accept([file_path]);
-        // );
         await this.#frame.waitForSelector("div[class='LEJ26'] > button");
         await this.#frame.evaluate(() => {
           document.querySelector("div[class='LEJ26'] > button").click();
@@ -167,10 +174,9 @@ class InstagramPuppet {
         await this.#frame.waitForSelector("p[class='gxNyb']", {
           visible: true,
         });
-        await options.callback();
+        await callback({ success: true });
         this.#removeStoryFromLocal(file_path);
       },
-      err: async (err) => (console.log(err), await this.exit()),
     });
   };
 

@@ -12,11 +12,9 @@
     "express": "~4.16.1",
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
-    "jimp": "^0.16.1",
     "morgan": "~1.9.1",
     "node-cron": "^3.0.0",
     "node-fetch": "^2.6.1",
-    "puppeteer": "^9.1.1",
-    "xvfb": "^0.4.0"
+    "puppeteer": "^9.1.1"
   }
 }

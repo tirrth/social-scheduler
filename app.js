@@ -102,8 +102,9 @@ const automateInstagramStory = async () => {
         const destination = "/public/files/file.jpeg";
         const filePath = path.relative(process.cwd(), __dirname + destination);
         (async () => {
-          await ig.uploadStory(display_url, filePath, {
-            callback: async () => await ig.exit(),
+          await ig.uploadStory(display_url, filePath, async (resp) => {
+            !resp.success && console.log(resp.error);
+            await ig.exit();
           });
         })();
       }

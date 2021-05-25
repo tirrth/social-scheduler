@@ -89,12 +89,14 @@ class InstagramPuppet {
     });
     const page = await browser.newPage();
     await page._client.send("Emulation.clearDeviceMetricsOverride");
+    fs.rmdirSync("public/files", { recursive: true });
+    fs.mkdirSync("public/files/segments", { recursive: true });
     this.#browser = browser;
     this.#page = page;
     process.on("unhandledRejection", (reason, p) => {
       console.log("Unhandled Rejection at: Promise", p, "reason:", reason);
       const image = this.#FALLBACK_IMAGE;
-      const dir = (this.#FALLBACK_DIR || "") + "fallback.jpeg";
+      const dir = `${this.#FALLBACK_DIR || ""}/fallback.jpeg`;
       if (image) {
         this.uploadStoryFromUrl(image, dir, { callback: this.exit() });
       } else this.exit();
@@ -112,8 +114,7 @@ class InstagramPuppet {
     await this.goto(this.#BASE_URL);
     const { instagramSession } = global;
     if (Array.isArray(instagramSession) && instagramSession.length) {
-      await this.#page.setCookie(...global.instagramSession);
-      return;
+      return await this.#page.setCookie(...global.instagramSession);
     }
     await this.#page.waitForSelector("input[name=username]");
     await this.#page.type("input[name=username]", username);
@@ -218,7 +219,6 @@ class InstagramPuppet {
           else if (i && i % 3600 === 0) (j = 0), l++;
           else j += 15;
         }
-        console.log("durations =", time_intervals);
         let count = 0;
         time_intervals.map((startTime, idx) => {
           ffmpeg(input)
@@ -230,6 +230,7 @@ class InstagramPuppet {
               else {
                 count += 1;
                 if (count === time_intervals.length) {
+                  this.#removeStoryFromLocal(input);
                   callback(err, "Conversion Done");
                 }
               }
@@ -265,9 +266,10 @@ class InstagramPuppet {
         else {
           const segments = fs.readdirSync(output_dir);
           for (const chunk of segments) {
-            await this.#uploadStoryFromLocal(`${output_dir}/${chunk}`);
+            if (chunk.split(".").pop() === "mp4") {
+              await this.#uploadStoryFromLocal(`${output_dir}/${chunk}`);
+            }
           }
-          this.#removeStoryFromLocal(file_path);
           await cb?.({ success: true, res });
         }
       },

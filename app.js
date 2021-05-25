@@ -92,13 +92,8 @@ const automateInstagramStory = async () => {
   const fallback_image = `https://thumbs.dreamstime.com/b/computer-error-box-funny-fake-message-i-speechless-original-design-error-box-i-speechless-197648494.jpg`;
   const fallback_err = "Error while processing!";
   const navigateToPage = _getRandomPage();
-  const ig = new InstagramPuppet();
-  ig.setFallbackImage(fallback_image);
-  ig.setFallbackDir(path.relative(process.cwd(), __dirname + "/public/files/"));
   const _uploadStoryFromUrl = (story_url, is_video) => {
-    const destination = `/public/files/file.${!is_video ? "jpeg" : "mp4"}`;
-    const filePath = path.relative(process.cwd(), __dirname + destination);
-    ig.uploadStoryFromUrl(story_url, filePath, {
+    ig.uploadStoryFromUrl(story_url, {
       is_video,
       callback: async (resp) => {
         !resp.success && console.log(resp?.error || fallback_err);
@@ -106,24 +101,21 @@ const automateInstagramStory = async () => {
       },
     });
   };
+  const ig = new InstagramPuppet();
+  ig.setBaseDir(path.relative(process.cwd(), __dirname + "/public/files/"));
+  ig.setFallbackImage(fallback_image);
   await ig.initialize();
   const { CLIENT_ID, SECRET_KEY } = process.env;
   await ig.login(CLIENT_ID, SECRET_KEY);
   ig.getRandomPostFromPage(navigateToPage)
     .then((resp) => {
-      if (!resp) {
-        var story_url = fallback_image;
-        var is_video = false;
-      } else {
-        is_video = !!resp?.node?.is_video;
-        story_url = resp?.node?.[!is_video ? "display_url" : "video_url"];
-        if (!story_url) (story_url = fallback_image), (is_video = false);
-      }
+      const is_video = !!resp?.node?.is_video;
+      const story_url = resp?.node?.[!is_video ? "display_url" : "video_url"];
       _uploadStoryFromUrl(story_url, is_video);
     })
     .catch((err) => {
       console.log(err || fallback_err);
-      _uploadStoryFromUrl(fallback_image, false);
+      _uploadStoryFromUrl(null, null);
     });
 };
 

@@ -7,13 +7,14 @@ const os = require("os");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const ffmpeg = require("fluent-ffmpeg");
 ffmpeg.setFfmpegPath(ffmpegPath);
+
 class InstagramPuppet {
   #BASE_PATH = process.cwd();
   #EXT_INSSIST_PATH = `${this.#BASE_PATH}/extensions/inssist`;
   #BASE_URL = "https://www.instagram.com";
   #INSTA_MOBILE_URL = "https://insta-mobile.netlify.app";
   #FALLBACK_IMAGE = null;
-  #FALLBACK_DIR = null;
+  #BASE_DIR = null;
   #browser = null;
   #page = null;
   #frame = null;
@@ -31,7 +32,7 @@ class InstagramPuppet {
     const request = https.get(url, (response) => {
       // check if response is success
       if (response.statusCode !== 200) {
-        return cb("Response status was " + response.statusCode);
+        return cb?.("Response status was " + response.statusCode);
       }
       response.pipe(file);
     });
@@ -40,18 +41,27 @@ class InstagramPuppet {
     // check for request error too
     request.on("error", (err) => {
       fs.unlink(dest);
-      return cb(err?.message);
+      return cb?.(err?.message);
     });
     file.on("error", (err) => {
       // Handle errors
       fs.unlink(dest); // Delete the file async. (But we don't check the result)
-      return cb(err?.message);
+      return cb?.(err?.message);
     });
   };
 
   #removeStoryFromLocal = (file_path) => {
     try {
       fs.unlinkSync(file_path);
+    } catch (err) {
+      console.log("Error: ", err);
+    }
+  };
+
+  #resetDirectory = () => {
+    try {
+      fs.rmdirSync(this.#BASE_DIR, { recursive: true });
+      fs.mkdirSync(`${this.#BASE_DIR}/segments`, { recursive: true });
     } catch (err) {
       console.log("Error: ", err);
     }
@@ -89,17 +99,12 @@ class InstagramPuppet {
     });
     const page = await browser.newPage();
     await page._client.send("Emulation.clearDeviceMetricsOverride");
-    fs.rmdirSync("public/files", { recursive: true });
-    fs.mkdirSync("public/files/segments", { recursive: true });
+    this.#resetDirectory();
     this.#browser = browser;
     this.#page = page;
     process.on("unhandledRejection", (reason, p) => {
       console.log("Unhandled Rejection at: Promise", p, "reason:", reason);
-      const image = this.#FALLBACK_IMAGE;
-      const dir = `${this.#FALLBACK_DIR || ""}/fallback.jpeg`;
-      if (image) {
-        this.uploadStoryFromUrl(image, dir, { callback: this.exit() });
-      } else this.exit();
+      this.uploadStoryFromUrl(null, { callback: this.exit });
     });
   };
 
@@ -147,7 +152,7 @@ class InstagramPuppet {
     await this.goto(this.#INSTA_MOBILE_URL);
     this.#frame = await this.#getInstagramFrame(this.#page);
     const camera_selector = "button[class='mTGkH']";
-    await this.#frame.waitForSelector(camera_selector);
+    await this.#frame.waitForSelector(camera_selector, { timeout: 45000 });
     const [fileChooser] = await Promise.all([
       this.#page.waitForFileChooser(),
       this.#frame.click(camera_selector),
@@ -173,31 +178,6 @@ class InstagramPuppet {
   };
 
   #downloadVideoChunks = ({ input, output_dir, callback }) => {
-    // const process = new ffmpeg(input);
-    // process
-    //   .then((video) => {
-    //     video.addCommand("-c", "copy");
-    //     video.addCommand("-map", 0);
-    //     // video.addCommand("-force_key_frames", "expr:gte(t,n_forced*9)");
-    //     video.addCommand("-segment_time", `00:${duration}`);
-    //     video.addCommand("-f", "segment");
-    //     video.addCommand("-reset_timestamps", "1");
-    //     video.save(output, callback);
-    //   }, callback)
-    //   .catch(callback);
-    // ffmpeg(input)
-    //   .setStartTime(start)
-    //   .setDuration(duration)
-    //   .output(output)
-    //   .on("end", function (err) {
-    //     if (!err) {
-    //       console.log("Conversion Done");
-    //     }
-    //   })
-    //   .on("error", function (err) {
-    //     console.log("error: ", err);
-    //   })
-    //   .run();
     ffmpeg.ffprobe(input, (err, metadata) => {
       if (err) callback(err);
       else {
@@ -224,15 +204,13 @@ class InstagramPuppet {
           ffmpeg(input)
             .setStartTime(startTime)
             .setDuration(15)
-            .output(`${output_dir}/video_${_toLocalString(idx, 3)}.mp4`)
+            .output(`${output_dir}/video_${_toLocalString(idx, 2)}.mp4`)
             .on("end", (err) => {
-              if (err) callback(err);
-              else {
-                count += 1;
-                if (count === time_intervals.length) {
-                  this.#removeStoryFromLocal(input);
-                  callback(err, "Conversion Done");
-                }
+              if (err) return callback(err);
+              count += 1;
+              if (count === time_intervals.length) {
+                this.#removeStoryFromLocal(input);
+                callback(err, "Conversion Done");
               }
             })
             .on("error", callback)
@@ -240,18 +218,6 @@ class InstagramPuppet {
         });
       }
     });
-    // ffmpeg(input)
-    //   .output(output)
-    //   .on("end", function (err) {
-    //     if (!err) {
-    //       console.log("Conversion Done");
-    //       callback(err, "Conversion Done");
-    //     }
-    //   })
-    //   .on("error", function (err) {
-    //     console.log("error: ", err);
-    //   })
-    //   .run();
   };
 
   #uploadVideoFromLocal = (file_path, cb) => {
@@ -260,7 +226,6 @@ class InstagramPuppet {
     const params = {
       input: file_path,
       output_dir,
-      // output: `${file_dir}/segments/video_%03d.mp4`,
       callback: async (err, res) => {
         if (err) cb?.({ success: false, error: err });
         else {
@@ -277,14 +242,16 @@ class InstagramPuppet {
     this.#downloadVideoChunks(params);
   };
 
-  uploadStoryFromUrl = (url, file_path, options = {}) => {
+  uploadStoryFromUrl = (url, options = {}) => {
+    if (!url) options.is_video = false;
+    url = url || this.#FALLBACK_IMAGE;
+    const file_name = `file.${!options.is_video ? "jpeg" : "mp4"}`;
+    const file_path = `${this.#BASE_DIR}/${file_name}`;
     this.#downloadStoryToLocal({
       url,
       dest: file_path,
       cb: (err) => {
-        if (err) {
-          return options.callback?.({ success: false, error: err });
-        }
+        if (err) return options.callback({ success: false, error: err });
         if (options.is_video) {
           this.#uploadVideoFromLocal(file_path, options.callback);
         } else this.#uploadStoryFromLocal(file_path, options.callback);
@@ -292,11 +259,11 @@ class InstagramPuppet {
     });
   };
 
-  exit = async () => await this.#browser.close();
-
   setFallbackImage = (img) => (this.#FALLBACK_IMAGE = img);
 
-  setFallbackDir = (dir) => (this.#FALLBACK_DIR = dir);
+  setBaseDir = (dir) => (this.#BASE_DIR = dir);
+
+  exit = async () => (await this.#browser.close(), this.#resetDirectory());
 }
 
 module.exports = InstagramPuppet;

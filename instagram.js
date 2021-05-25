@@ -11,6 +11,8 @@ class InstagramPuppet {
   #EXT_INSSIST_PATH = `${this.#BASE_PATH}/extensions/inssist`;
   #BASE_URL = "https://www.instagram.com";
   #INSTA_MOBILE_URL = "https://insta-mobile.netlify.app";
+  #FALLBACK_IMAGE = null;
+  #FALLBACK_DIR = null;
   #browser = null;
   #page = null;
   #frame = null;
@@ -90,7 +92,11 @@ class InstagramPuppet {
     this.#page = page;
     process.on("unhandledRejection", (reason, p) => {
       console.log("Unhandled Rejection at: Promise", p, "reason:", reason);
-      this.exit();
+      const image = this.#FALLBACK_IMAGE;
+      const dir = (this.#FALLBACK_DIR || "") + "fallback.jpeg";
+      if (image) {
+        this.uploadStoryFromUrl(image, dir, { callback: this.exit() });
+      } else this.exit();
     });
   };
 
@@ -136,7 +142,6 @@ class InstagramPuppet {
   };
 
   #uploadStoryFromLocal = async (file_path, cb) => {
-    // this.#page = await this.#browser.newPage();
     await this.goto(this.#INSTA_MOBILE_URL);
     this.#frame = await this.#getInstagramFrame(this.#page);
     const camera_selector = "button[class='mTGkH']";
@@ -153,6 +158,7 @@ class InstagramPuppet {
     });
     await this.#frame.waitForSelector("p[class='gxNyb']", {
       visible: true,
+      timeout: 90000, // default: 30000
     });
     await cb?.({ success: true, res: "Story uploaded successfully" });
     this.#removeStoryFromLocal(file_path);
@@ -179,33 +185,20 @@ class InstagramPuppet {
       .catch(callback);
   };
 
-  #uploadVideoFromLocal = async (file_path, cb) => {
+  #uploadVideoFromLocal = (file_path, cb) => {
     const file_dir = this.#getFileDirectory(file_path);
     const params = {
       input: file_path,
       duration: 12,
       output: `${file_dir}/segments/video_%03d.mp4`,
-      callback: (err, res) => {
+      callback: async (err, res) => {
         if (err) cb?.({ success: false, error: err });
         else {
           const segments = fs.readdirSync(`${file_dir}/segments`);
-          (async () => {
-            for (const chunk of segments) {
-              await this.#uploadStoryFromLocal(`${file_dir}/segments/${chunk}`);
-            }
-          })();
-          // Promise.all(
-          //   segments.map((chunk_name) => {
-          //     return this.#uploadStoryFromLocal(
-          //       `${file_dir}/segments/${chunk_name}`,
-          //       () => null
-          //     );
-          //   })
-          // ).then((values) => {
-          //   console.log(values);
-          // });
-          // console.log("Video file: ", res);
-          // cb({ success: true, res });
+          for (const chunk of segments) {
+            await this.#uploadStoryFromLocal(`${file_dir}/segments/${chunk}`);
+          }
+          await cb?.({ success: true, res });
         }
       },
     };
@@ -216,7 +209,7 @@ class InstagramPuppet {
     this.#downloadStoryToLocal({
       url,
       dest: file_path,
-      cb: async (err) => {
+      cb: (err) => {
         if (err) {
           return options.callback?.({ success: false, error: err });
         }
@@ -228,6 +221,10 @@ class InstagramPuppet {
   };
 
   exit = async () => await this.#browser.close();
+
+  setFallbackImage = (img) => (this.#FALLBACK_IMAGE = img);
+
+  setFallbackDir = (dir) => (this.#FALLBACK_DIR = dir);
 }
 
 module.exports = InstagramPuppet;

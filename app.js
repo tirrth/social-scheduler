@@ -93,6 +93,8 @@ const automateInstagramStory = async () => {
   const fallback_err = "Error while processing!";
   const navigateToPage = _getRandomPage();
   const ig = new InstagramPuppet();
+  ig.setFallbackImage(fallback_image);
+  ig.setFallbackDir(path.relative(process.cwd(), __dirname + "/public/files/"));
   const _uploadStoryFromUrl = (story_url, is_video) => {
     const destination = `/public/files/file.${!is_video ? "jpeg" : "mp4"}`;
     const filePath = path.relative(process.cwd(), __dirname + destination);

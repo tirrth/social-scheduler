@@ -9,8 +9,6 @@ var app = express();
 const cron = require("node-cron");
 const InstagramPuppet = require("./instagram");
 const { generateRandomInteger } = require("./util");
-const puppeteer = require("puppeteer");
-const Xvfb = require("xvfb");
 
 const memes = [
   "meme.ig",
@@ -86,30 +84,46 @@ const _getRandomPage = () => {
   const instagram_page = _getInstagramPageCategory();
   const random_page_no = generateRandomInteger(0, instagram_page.length - 1);
   const random_page = `${instagram_page[random_page_no]}`;
+  return "video";
   return random_page;
 };
 
 const automateInstagramStory = async () => {
+  const fallback_image = `https://thumbs.dreamstime.com/b/computer-error-box-funny-fake-message-i-speechless-original-design-error-box-i-speechless-197648494.jpg`;
+  const fallback_err = "Error while processing!";
   const navigateToPage = _getRandomPage();
   const ig = new InstagramPuppet();
+  const _uploadStoryFromUrl = (story_url, is_video) => {
+    const destination = `/public/files/file.${!is_video ? "jpeg" : "mp4"}`;
+    const filePath = path.relative(process.cwd(), __dirname + destination);
+    ig.uploadStoryFromUrl(story_url, filePath, {
+      is_video,
+      callback: async (resp) => {
+        !resp.success && console.log(resp?.error || fallback_err);
+        await ig.exit();
+      },
+    });
+  };
   await ig.initialize();
   const { CLIENT_ID, SECRET_KEY } = process.env;
   await ig.login(CLIENT_ID, SECRET_KEY);
   ig.getRandomPostFromPage(navigateToPage)
     .then((resp) => {
-      const display_url = resp?.node?.display_url;
-      if (display_url) {
-        const destination = "/public/files/file.jpeg";
-        const filePath = path.relative(process.cwd(), __dirname + destination);
-        (async () => {
-          await ig.uploadStory(display_url, filePath, async (resp) => {
-            !resp.success && console.log(resp.error);
-            await ig.exit();
-          });
-        })();
+      // console.log("resp =", resp);
+      if (!resp) {
+        var story_url = fallback_image;
+        var is_video = false;
+      } else {
+        is_video = !!resp?.node?.is_video;
+        story_url = resp?.node?.[!is_video ? "display_url" : "video_url"];
+        if (!story_url) (story_url = fallback_image), (is_video = false);
       }
+      _uploadStoryFromUrl(story_url, is_video);
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      console.log(err || fallback_err);
+      _uploadStoryFromUrl(fallback_image, false);
+    });
 };
 
 // global.instagramSession = [

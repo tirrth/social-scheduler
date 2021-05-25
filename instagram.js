@@ -4,21 +4,19 @@ const https = require("https");
 const fs = require("fs");
 const { generateRandomInteger } = require("./util");
 const os = require("os");
+// const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+// const ffmpeg = require("fluent-ffmpeg");
+// ffmpeg.setFfmpegPath(ffmpegPath);
+var ffmpeg = require("ffmpeg");
+
 class InstagramPuppet {
   #BASE_PATH = process.cwd();
   #EXT_INSSIST_PATH = `${this.#BASE_PATH}/extensions/inssist`;
-  #BASE_URL = "https://instagram.com";
+  #BASE_URL = "https://www.instagram.com";
+  #INSTA_MOBILE_URL = "https://insta-mobile.netlify.app";
   #browser = null;
   #page = null;
   #frame = null;
-
-  // #chooseAppPreference = async (add_to_home) => {
-  //   const app_preference = `body > div.RnEpo.Yx5HN > div > div > div > div.mt3GC > button.aOOlW.${
-  //     add_to_home ? "bIiDR" : "HoLwm"
-  //   }`;
-  //   await this.#page.waitForSelector(app_preference);
-  //   await this.#page.click(app_preference);
-  // };
 
   #chooseLoginPreference = async (save_login_info, page = this.#page) => {
     const login_preference = `#react-root > section > main > div > div > div > ${
@@ -89,10 +87,6 @@ class InstagramPuppet {
         "--disable-features=IsolateOrigins,site-per-process",
       ],
     });
-    // const browser = await puppeteer.connect({
-    //   browserWSEndpoint:
-    //     "ws://127.0.0.1:9222/devtools/browser/28cb9cf1-b2fd-4af9-ae3e-5d5b774750ad",
-    // });
     const page = await browser.newPage();
     await page._client.send("Emulation.clearDeviceMetricsOverride");
     this.#browser = browser;
@@ -107,10 +101,11 @@ class InstagramPuppet {
     await this.#page.emulate(puppeteer.devices[device_name]);
   };
 
+  goto = async (url) =>
+    await this.#page.goto(url, { waitUntil: "networkidle2" });
+
   login = async (username, password, options = {}) => {
-    await this.#page.goto("https://www.instagram.com/", {
-      waitUntil: "networkidle2",
-    });
+    await this.goto(this.#BASE_URL);
     const { instagramSession } = global;
     if (Array.isArray(instagramSession) && instagramSession.length) {
       await this.#page.setCookie(...global.instagramSession);
@@ -124,10 +119,8 @@ class InstagramPuppet {
     global.instagramSession = await this.#page.cookies();
   };
 
-  goto = async (url) =>
-    await this.#page.goto(url, { waitUntil: "networkidle2" });
-
   getRandomPostFromPage = async (page) => {
+    if (!page) throw new Error("No page found");
     if (page.startsWith("#")) {
       var page_link = `${this.#BASE_URL}/explore/tags/${page.substring(1)}`;
     } else {
@@ -137,45 +130,94 @@ class InstagramPuppet {
     return fetch(page_link)
       .then((res) => res.json())
       .then((res) => {
-        // const edges =
-        //   res?.graphql?.user?.edge_owner_to_timeline_media?.edges?.filter(
-        //     (obj) => !obj.node.is_video
-        //   );
         const edges = res?.graphql?.user?.edge_owner_to_timeline_media?.edges;
+        if (!Array.isArray(edges)) return;
         const random_edge_no = generateRandomInteger(0, edges.length - 1);
         return edges[random_edge_no];
       });
   };
 
-  uploadStory = async (url, file_path, callback) => {
-    await this.#downloadStoryToLocal({
+  #uploadStoryFromLocal = async (file_path, cb) => {
+    await this.goto(this.#INSTA_MOBILE_URL);
+    this.#frame = await this.#getInstagramFrame(this.#page);
+    const camera_selector = "button[class='mTGkH']";
+    await this.#frame.waitForSelector(camera_selector);
+    const [fileChooser] = await Promise.all([
+      this.#page.waitForFileChooser(),
+      this.#frame.click(camera_selector),
+    ]);
+    fileChooser.isMultiple(false);
+    await fileChooser.accept([file_path]);
+    await this.#frame.waitForSelector("div[class='LEJ26'] > button");
+    await this.#frame.evaluate(() => {
+      document.querySelector("div[class='LEJ26'] > button").click();
+    });
+    await this.#frame.waitForSelector("p[class='gxNyb']", {
+      visible: true,
+    });
+    await cb?.({ success: true });
+    this.#removeStoryFromLocal(file_path);
+  };
+
+  #getFileDirectory = (file_path) => {
+    file_path = file_path.split("/");
+    file_path.pop();
+    return file_path.join("/");
+  };
+
+  #uploadVideoFromLocal = async (file_path, cb) => {
+    const file_dir = this.#getFileDirectory(file_path);
+    const { input, duration, output } = {
+      input: file_path,
+      duration: 12,
+      output: `${file_dir}/video_%03d.mp4`,
+    };
+    // ffmpeg(input)
+    //   .setStartTime(start)
+    //   .setDuration(duration)
+    //   .output(output)
+    //   .on("end", function (err) {
+    //     if (!err) {
+    //       console.log("Conversion Done");
+    //     }
+    //   })
+    //   .on("error", function (err) {
+    //     console.log("error: ", err);
+    //   })
+    //   .run();
+
+    var process = new ffmpeg(input);
+    process
+      .then(
+        (video) => {
+          video.addCommand("-c", "copy");
+          video.addCommand("-map", 0);
+          video.addCommand("-segment_time", `00:${duration}`);
+          video.addCommand("-f", "segment");
+          video.addCommand("-reset_timestamps", "1");
+          video.save(output, function (error, file) {
+            error && console.log("error =", error);
+            !error && console.log("Video file: " + file);
+          });
+        },
+        (err) => console.log("Error: " + err)
+      )
+      .catch((err) => {
+        console.log("Error: " + err);
+      });
+  };
+
+  uploadStoryFromUrl = (url, file_path, options = {}) => {
+    this.#downloadStoryToLocal({
       url,
       dest: file_path,
       cb: async (err) => {
         if (err) {
-          return callback({ success: false, error: err });
+          return options.callback?.({ success: false, error: err });
         }
-        await this.#page.goto("https://insta-mobile.netlify.app", {
-          waitUntil: "networkidle2",
-        });
-        this.#frame = await this.#getInstagramFrame(this.#page);
-        const camera_selector = "button[class='mTGkH']";
-        await this.#frame.waitForSelector(camera_selector);
-        const [fileChooser] = await Promise.all([
-          this.#page.waitForFileChooser(),
-          this.#frame.click(camera_selector),
-        ]);
-        fileChooser.isMultiple(false);
-        await fileChooser.accept([file_path]);
-        await this.#frame.waitForSelector("div[class='LEJ26'] > button");
-        await this.#frame.evaluate(() => {
-          document.querySelector("div[class='LEJ26'] > button").click();
-        });
-        await this.#frame.waitForSelector("p[class='gxNyb']", {
-          visible: true,
-        });
-        await callback({ success: true });
-        this.#removeStoryFromLocal(file_path);
+        if (options.is_video) {
+          this.#uploadVideoFromLocal(file_path, options.callback);
+        } else this.#uploadStoryFromLocal(file_path, options.callback);
       },
     });
   };

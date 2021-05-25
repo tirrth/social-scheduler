@@ -265,6 +265,23 @@ const automateInstagramStory = async () => {
 //   },
 // ];
 automateInstagramStory();
+// const durations = [];
+// const _toLocalString = (number) => {
+//   return number.toLocaleString("en-US", {
+//     minimumIntegerDigits: 2,
+//     useGrouping: false,
+//   });
+// };
+// for (var i = 0, j = 0, k = 0, l = 0; i <= 3600; i += 15) {
+//   if (i && i % 60 === 0) (j = 0), k++;
+//   else if (i && i % 3600 === 0) (j = 0), l++;
+//   else j += 15;
+//   const second = _toLocalString(j);
+//   const minute = _toLocalString(k);
+//   const hour = _toLocalString(l);
+//   durations.push(`${hour}:${minute}:${second}`);
+// }
+// console.log(durations);
 
 // cron.schedule("0 0 * * * *", automateInstagramStory);
 

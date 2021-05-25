@@ -4,8 +4,9 @@ const https = require("https");
 const fs = require("fs");
 const { generateRandomInteger } = require("./util");
 const os = require("os");
-const ffmpeg = require("ffmpeg");
-
+const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+const ffmpeg = require("fluent-ffmpeg");
+ffmpeg.setFfmpegPath(ffmpegPath);
 class InstagramPuppet {
   #BASE_PATH = process.cwd();
   #EXT_INSSIST_PATH = `${this.#BASE_PATH}/extensions/inssist`;
@@ -170,34 +171,103 @@ class InstagramPuppet {
     return file_path.join("/");
   };
 
-  #downloadVideoChunks = ({ input, duration, output, callback }) => {
-    const process = new ffmpeg(input);
-    process
-      .then((video) => {
-        video.addCommand("-c", "copy");
-        video.addCommand("-map", 0);
-        // video.addCommand("-force_key_frames", "expr:gte(t,n_forced*9)");
-        video.addCommand("-segment_time", `00:${duration}`);
-        video.addCommand("-f", "segment");
-        video.addCommand("-reset_timestamps", "1");
-        video.save(output, callback);
-      }, callback)
-      .catch(callback);
+  #downloadVideoChunks = ({ input, output_dir, callback }) => {
+    // const process = new ffmpeg(input);
+    // process
+    //   .then((video) => {
+    //     video.addCommand("-c", "copy");
+    //     video.addCommand("-map", 0);
+    //     // video.addCommand("-force_key_frames", "expr:gte(t,n_forced*9)");
+    //     video.addCommand("-segment_time", `00:${duration}`);
+    //     video.addCommand("-f", "segment");
+    //     video.addCommand("-reset_timestamps", "1");
+    //     video.save(output, callback);
+    //   }, callback)
+    //   .catch(callback);
+    // ffmpeg(input)
+    //   .setStartTime(start)
+    //   .setDuration(duration)
+    //   .output(output)
+    //   .on("end", function (err) {
+    //     if (!err) {
+    //       console.log("Conversion Done");
+    //     }
+    //   })
+    //   .on("error", function (err) {
+    //     console.log("error: ", err);
+    //   })
+    //   .run();
+    ffmpeg.ffprobe(input, (err, metadata) => {
+      if (err) callback(err);
+      else {
+        const _toLocalString = (number, minimumIntegerDigits = 2) => {
+          return number.toLocaleString("en-US", {
+            minimumIntegerDigits,
+            useGrouping: false,
+          });
+        };
+        const duration = Math.floor(metadata.format.duration);
+        const time_intervals = [];
+        // This is hard-coded particularly for instagram 15-seconds interval story, do not ever recommend this (it sucks...)
+        for (var i = 0, j = 0, k = 0, l = 0; i < duration; i += 15) {
+          const second = _toLocalString(j);
+          const minute = _toLocalString(k);
+          const hour = _toLocalString(l);
+          time_intervals.push(`${hour}:${minute}:${second}`);
+          if (i && i % 60 === 0) (j = 0), k++;
+          else if (i && i % 3600 === 0) (j = 0), l++;
+          else j += 15;
+        }
+        console.log("durations =", time_intervals);
+        let count = 0;
+        time_intervals.map((startTime, idx) => {
+          ffmpeg(input)
+            .setStartTime(startTime)
+            .setDuration(15)
+            .output(`${output_dir}/video_${_toLocalString(idx, 3)}.mp4`)
+            .on("end", (err) => {
+              if (err) callback(err);
+              else {
+                count += 1;
+                if (count === time_intervals.length) {
+                  callback(err, "Conversion Done");
+                }
+              }
+            })
+            .on("error", callback)
+            .run();
+        });
+      }
+    });
+    // ffmpeg(input)
+    //   .output(output)
+    //   .on("end", function (err) {
+    //     if (!err) {
+    //       console.log("Conversion Done");
+    //       callback(err, "Conversion Done");
+    //     }
+    //   })
+    //   .on("error", function (err) {
+    //     console.log("error: ", err);
+    //   })
+    //   .run();
   };
 
   #uploadVideoFromLocal = (file_path, cb) => {
     const file_dir = this.#getFileDirectory(file_path);
+    const output_dir = `${file_dir}/segments`;
     const params = {
       input: file_path,
-      duration: 12,
-      output: `${file_dir}/segments/video_%03d.mp4`,
+      output_dir,
+      // output: `${file_dir}/segments/video_%03d.mp4`,
       callback: async (err, res) => {
         if (err) cb?.({ success: false, error: err });
         else {
-          const segments = fs.readdirSync(`${file_dir}/segments`);
+          const segments = fs.readdirSync(output_dir);
           for (const chunk of segments) {
-            await this.#uploadStoryFromLocal(`${file_dir}/segments/${chunk}`);
+            await this.#uploadStoryFromLocal(`${output_dir}/${chunk}`);
           }
+          this.#removeStoryFromLocal(file_path);
           await cb?.({ success: true, res });
         }
       },

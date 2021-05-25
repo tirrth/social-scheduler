@@ -84,7 +84,7 @@ const _getRandomPage = () => {
   const instagram_page = _getInstagramPageCategory();
   const random_page_no = generateRandomInteger(0, instagram_page.length - 1);
   const random_page = `${instagram_page[random_page_no]}`;
-  return "video";
+  return "nature";
   return random_page;
 };
 
@@ -109,7 +109,6 @@ const automateInstagramStory = async () => {
   await ig.login(CLIENT_ID, SECRET_KEY);
   ig.getRandomPostFromPage(navigateToPage)
     .then((resp) => {
-      // console.log("resp =", resp);
       if (!resp) {
         var story_url = fallback_image;
         var is_video = false;

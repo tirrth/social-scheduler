@@ -4,10 +4,7 @@ const https = require("https");
 const fs = require("fs");
 const { generateRandomInteger } = require("./util");
 const os = require("os");
-// const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
-// const ffmpeg = require("fluent-ffmpeg");
-// ffmpeg.setFfmpegPath(ffmpegPath);
-var ffmpeg = require("ffmpeg");
+const ffmpeg = require("ffmpeg");
 
 class InstagramPuppet {
   #BASE_PATH = process.cwd();
@@ -123,14 +120,15 @@ class InstagramPuppet {
     if (!page) throw new Error("No page found");
     if (page.startsWith("#")) {
       var page_link = `${this.#BASE_URL}/explore/tags/${page.substring(1)}`;
-    } else {
-      page_link = `${this.#BASE_URL}/${page}`;
-    }
+    } else page_link = `${this.#BASE_URL}/${page}`;
     page_link = `${page_link}?__a=1`;
     return fetch(page_link)
       .then((res) => res.json())
       .then((res) => {
-        const edges = res?.graphql?.user?.edge_owner_to_timeline_media?.edges;
+        const edges =
+          res?.graphql?.user?.edge_owner_to_timeline_media?.edges.filter(
+            (e) => e.node.is_video
+          );
         if (!Array.isArray(edges)) return;
         const random_edge_no = generateRandomInteger(0, edges.length - 1);
         return edges[random_edge_no];
@@ -138,6 +136,7 @@ class InstagramPuppet {
   };
 
   #uploadStoryFromLocal = async (file_path, cb) => {
+    // this.#page = await this.#browser.newPage();
     await this.goto(this.#INSTA_MOBILE_URL);
     this.#frame = await this.#getInstagramFrame(this.#page);
     const camera_selector = "button[class='mTGkH']";
@@ -155,7 +154,7 @@ class InstagramPuppet {
     await this.#frame.waitForSelector("p[class='gxNyb']", {
       visible: true,
     });
-    await cb?.({ success: true });
+    await cb?.({ success: true, res: "Story uploaded successfully" });
     this.#removeStoryFromLocal(file_path);
   };
 
@@ -165,46 +164,52 @@ class InstagramPuppet {
     return file_path.join("/");
   };
 
+  #downloadVideoChunks = ({ input, duration, output, callback }) => {
+    const process = new ffmpeg(input);
+    process
+      .then((video) => {
+        video.addCommand("-c", "copy");
+        video.addCommand("-map", 0);
+        // video.addCommand("-force_key_frames", "expr:gte(t,n_forced*9)");
+        video.addCommand("-segment_time", `00:${duration}`);
+        video.addCommand("-f", "segment");
+        video.addCommand("-reset_timestamps", "1");
+        video.save(output, callback);
+      }, callback)
+      .catch(callback);
+  };
+
   #uploadVideoFromLocal = async (file_path, cb) => {
     const file_dir = this.#getFileDirectory(file_path);
-    const { input, duration, output } = {
+    const params = {
       input: file_path,
       duration: 12,
-      output: `${file_dir}/video_%03d.mp4`,
+      output: `${file_dir}/segments/video_%03d.mp4`,
+      callback: (err, res) => {
+        if (err) cb?.({ success: false, error: err });
+        else {
+          const segments = fs.readdirSync(`${file_dir}/segments`);
+          (async () => {
+            for (const chunk of segments) {
+              await this.#uploadStoryFromLocal(`${file_dir}/segments/${chunk}`);
+            }
+          })();
+          // Promise.all(
+          //   segments.map((chunk_name) => {
+          //     return this.#uploadStoryFromLocal(
+          //       `${file_dir}/segments/${chunk_name}`,
+          //       () => null
+          //     );
+          //   })
+          // ).then((values) => {
+          //   console.log(values);
+          // });
+          // console.log("Video file: ", res);
+          // cb({ success: true, res });
+        }
+      },
     };
-    // ffmpeg(input)
-    //   .setStartTime(start)
-    //   .setDuration(duration)
-    //   .output(output)
-    //   .on("end", function (err) {
-    //     if (!err) {
-    //       console.log("Conversion Done");
-    //     }
-    //   })
-    //   .on("error", function (err) {
-    //     console.log("error: ", err);
-    //   })
-    //   .run();
-
-    var process = new ffmpeg(input);
-    process
-      .then(
-        (video) => {
-          video.addCommand("-c", "copy");
-          video.addCommand("-map", 0);
-          video.addCommand("-segment_time", `00:${duration}`);
-          video.addCommand("-f", "segment");
-          video.addCommand("-reset_timestamps", "1");
-          video.save(output, function (error, file) {
-            error && console.log("error =", error);
-            !error && console.log("Video file: " + file);
-          });
-        },
-        (err) => console.log("Error: " + err)
-      )
-      .catch((err) => {
-        console.log("Error: " + err);
-      });
+    this.#downloadVideoChunks(params);
   };
 
   uploadStoryFromUrl = (url, file_path, options = {}) => {

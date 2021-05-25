@@ -5,8 +5,10 @@ const fs = require("fs");
 const { generateRandomInteger } = require("./util");
 const os = require("os");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+const ffprobePath = require("@ffprobe-installer/ffprobe").path;
 const ffmpeg = require("fluent-ffmpeg");
 ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobePath);
 
 class InstagramPuppet {
   #BASE_PATH = process.cwd();

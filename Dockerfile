@@ -9,10 +9,13 @@ FROM node:latest
 #     libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 \
 #     ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget \
 #     xvfb x11vnc x11-xkb-utils xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic x11-apps
-
 # add the required dependencies
+
 WORKDIR /app
 COPY . /app
+RUN ["chmod", "+x", "buildpacks/chromedriver.sh"] \ 
+    ["chmod", "+x", "buildpacks/xvfb-chrome.sh"]
+RUN ["./buildpacks/chromedriver.sh"] ["./buildpacks/xvfb-chrome.sh"]
 RUN npm i
 
 # make sure we can run without a UI

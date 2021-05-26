@@ -13,9 +13,10 @@ FROM node:latest
 
 WORKDIR /app
 COPY . /app
-RUN ["chmod", "+x", "buildpacks/chromedriver.sh"] \ 
-    ["chmod", "+x", "buildpacks/xvfb-chrome.sh"]
-RUN ["./buildpacks/chromedriver.sh"] ["./buildpacks/xvfb-chrome.sh"]
+RUN ["chmod", "+x", "buildpacks/chromedriver.sh"]
+RUN ["./buildpacks/chromedriver.sh"]
+RUN ["chmod", "+x", "buildpacks/xvfb-chrome.sh"]
+RUN ["./buildpacks/xvfb-chrome.sh"]
 RUN npm i
 
 # make sure we can run without a UI

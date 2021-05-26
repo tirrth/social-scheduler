@@ -1,5 +1,5 @@
 FROM heroku/cedar:14
-# FROM node:latest
+FROM node:latest
 
 # update and add all the steps for running with xvfb
 # RUN apt-get update &&\

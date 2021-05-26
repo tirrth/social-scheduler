@@ -106,16 +106,17 @@ const automateInstagramStory = async () => {
   await ig.initialize();
   const { CLIENT_ID, SECRET_KEY } = process.env;
   await ig.login(CLIENT_ID, SECRET_KEY);
-  ig.getRandomPostFromPage(navigateToPage)
-    .then((resp) => {
-      const is_video = !!resp?.node?.is_video;
-      const story_url = resp?.node?.[!is_video ? "display_url" : "video_url"];
-      _uploadStoryFromUrl(story_url, is_video);
-    })
-    .catch((err) => {
-      console.log(err || fallback_err);
-      _uploadStoryFromUrl(null, null);
-    });
+  _uploadStoryFromUrl(null, null);
+  // ig.getRandomPostFromPage(navigateToPage)
+  //   .then((resp) => {
+  //     const is_video = !!resp?.node?.is_video;
+  //     const story_url = resp?.node?.[!is_video ? "display_url" : "video_url"];
+  //     _uploadStoryFromUrl(story_url, is_video);
+  //   })
+  //   .catch((err) => {
+  //     console.log(err || fallback_err);
+  //     _uploadStoryFromUrl(null, null);
+  //   });
 };
 
 global.instagramSession = [

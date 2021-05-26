@@ -4,6 +4,7 @@ const https = require("https");
 const fs = require("fs");
 const { generateRandomInteger } = require("./util");
 const os = require("os");
+const path = require("path");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const ffprobePath = require("@ffprobe-installer/ffprobe").path;
 const ffmpeg = require("fluent-ffmpeg");

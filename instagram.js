@@ -15,7 +15,7 @@ class InstagramPuppet {
   #EXT_INSSIST_PATH = `${this.#BASE_PATH}/extensions/inssist`;
   #BASE_URL = "https://www.instagram.com";
   #INSTA_MOBILE_URL = "https://insta-mobile.netlify.app";
-  #FALLBACK_IMAGE = null;
+  #FALLBACK_IMAGE_URL = null;
   #BASE_DIR = null;
   #browser = null;
   #page = null;
@@ -140,10 +140,7 @@ class InstagramPuppet {
     return fetch(page_link)
       .then((res) => res.json())
       .then((res) => {
-        const edges =
-          res?.graphql?.user?.edge_owner_to_timeline_media?.edges.filter(
-            (e) => e.node.is_video
-          );
+        const edges = res?.graphql?.user?.edge_owner_to_timeline_media?.edges;
         if (!Array.isArray(edges)) return;
         const random_edge_no = generateRandomInteger(0, edges.length - 1);
         return edges[random_edge_no];
@@ -169,14 +166,8 @@ class InstagramPuppet {
       visible: true,
       timeout: 90000, // default: 30000
     });
-    await cb?.({ success: true, res: "Story uploaded successfully" });
     this.#removeStoryFromLocal(file_path);
-  };
-
-  #getFileDirectory = (file_path) => {
-    file_path = file_path.split("/");
-    file_path.pop();
-    return file_path.join("/");
+    await cb?.({ success: true, res: "Story uploaded successfully" });
   };
 
   #downloadVideoChunks = ({ input, output_dir, callback }) => {
@@ -191,7 +182,7 @@ class InstagramPuppet {
         };
         const duration = Math.floor(metadata.format.duration);
         const time_intervals = [];
-        // This is hard-coded particularly for instagram 15-seconds interval story, do not ever recommend this (it sucks...)
+        // this is a hard-coded loop made particularly for instagram's 15-seconds interval story, do not ever recommend this (it sucks...)
         for (var i = 0, j = 0, k = 0, l = 0; i < duration; i += 15) {
           const second = _toLocalString(j);
           const minute = _toLocalString(k);
@@ -223,8 +214,7 @@ class InstagramPuppet {
   };
 
   #uploadVideoFromLocal = (file_path, cb) => {
-    const file_dir = this.#getFileDirectory(file_path);
-    const output_dir = `${file_dir}/segments`;
+    const output_dir = `${this.#BASE_DIR}/segments`;
     const params = {
       input: file_path,
       output_dir,
@@ -246,7 +236,7 @@ class InstagramPuppet {
 
   uploadStoryFromUrl = (url, options = {}) => {
     if (!url) options.is_video = false;
-    url = url || this.#FALLBACK_IMAGE;
+    url = url || this.#FALLBACK_IMAGE_URL;
     const file_name = `file.${!options.is_video ? "jpeg" : "mp4"}`;
     const file_path = `${this.#BASE_DIR}/${file_name}`;
     this.#downloadStoryToLocal({
@@ -261,7 +251,7 @@ class InstagramPuppet {
     });
   };
 
-  setFallbackImage = (img) => (this.#FALLBACK_IMAGE = img);
+  setFallbackImage = (img) => (this.#FALLBACK_IMAGE_URL = img);
 
   setBaseDir = (dir) => (this.#BASE_DIR = dir);
 

@@ -25,8 +25,13 @@ class InstagramPuppet {
     const login_preference = `#react-root > section > main > div > div > div > ${
       save_login_info ? "section > " : ""
     }div > button`;
-    await page.waitForSelector(login_preference);
-    await page.click(login_preference);
+    try {
+      await page.waitForSelector(login_preference);
+      await page.click(login_preference);
+    } catch (err) {
+      console.log("Choosing Login Preference Error: ", err);
+      return false;
+    }
   };
 
   #downloadStoryToLocal = async ({ url, dest, cb }) => {
@@ -173,6 +178,7 @@ class InstagramPuppet {
       if (err) callback(err);
       else {
         const duration = Math.floor(metadata.format.duration);
+        console.log("Video duration =", duration);
         const time_intervals = [];
         // this is a hard-coded loop made particularly for instagram's 15-seconds interval story, do not ever recommend this (it sucks...)
         for (var i = 0, j = 0, k = 0, l = 0; i < duration; i += 15) {
@@ -184,6 +190,7 @@ class InstagramPuppet {
           else if (i && i % 3600 === 0) (j = 0), l++;
           else j += 15;
         }
+        console.log("Time intervals =", time_intervals);
         let count = 0;
         time_intervals.map((startTime, idx) => {
           ffmpeg(input)
@@ -191,9 +198,9 @@ class InstagramPuppet {
             .setDuration(15)
             .output(`${output_dir}/video_${minimumIntegerDigits(idx, 2)}.mp4`)
             .on("end", (err) => {
-              err && console.log("Well, Error found!");
-              if (err) return callback(err);
+              if (err) return console.log("Well, Error found!"), callback(err);
               count += 1;
+              console.log("Conversion done => " + count);
               if (count === time_intervals.length) {
                 this.#removeStoryFromLocal(input);
                 callback(err, "Conversion Done");

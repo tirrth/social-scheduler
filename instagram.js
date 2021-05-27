@@ -26,11 +26,8 @@ class InstagramPuppet {
     const login_preference = `#react-root > section > main > div > div > div > ${
       save_login_info ? "section > " : ""
     }div > button`;
-    console.log("this!!");
     await page.waitForSelector(login_preference);
-    console.log("is!!");
     await page.click(login_preference);
-    console.log("working1111111!!");
   };
 
   #downloadStoryToLocal = async ({ url, dest, cb }) => {
@@ -126,12 +123,9 @@ class InstagramPuppet {
     if (Array.isArray(instagramSession) && instagramSession.length) {
       return await this.#page.setCookie(...global.instagramSession);
     }
-    console.log("this!!");
     await this.#page.waitForSelector("input[name=username]");
-    console.log("is!!");
     await this.#page.type("input[name=username]", username);
     await this.#page.type("input[name=password]", password);
-    console.log("working2222!!");
     await this.#page.click("button[type=submit]");
     await this.#chooseLoginPreference(!!options?.saveLoginInfo, this.#page);
     global.instagramSession = await this.#page.cookies();
@@ -145,9 +139,7 @@ class InstagramPuppet {
     page_link = `${page_link}?__a=1`;
     console.log("Page Link =", page_link);
     return axios.get(page_link).then((res) => {
-      console.log("res =", res);
       const { data } = res;
-      console.log("data =", data);
       const edges = data?.graphql?.user?.edge_owner_to_timeline_media?.edges;
       if (!Array.isArray(edges)) return;
       const random_edge_no = generateRandomInteger(0, edges.length - 1);

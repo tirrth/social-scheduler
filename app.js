@@ -7,7 +7,8 @@ var logger = require("morgan");
 var indexRouter = require("./routes/index");
 var app = express();
 const cron = require("node-cron");
-const { keepServerAlive, request } = require("./util");
+const axios = require("axios");
+const { keepServerAlive } = require("./util");
 const { automateInstagramStory } = require("./instagram");
 
 // global.instagramSession = [
@@ -148,7 +149,22 @@ const { automateInstagramStory } = require("./instagram");
 //   },
 // ];
 
-automateInstagramStory();
+// automateInstagramStory();
+axios
+  .get("https://www.instagram.com/fuckjerry?__a=1")
+  .then((res) => {
+    console.log("res =", res);
+    const { data } = res;
+    console.log("data =", data);
+    const edges = data?.graphql?.user?.edge_owner_to_timeline_media?.edges;
+    if (!Array.isArray(edges)) return;
+    const random_edge_no = generateRandomInteger(0, edges.length - 1);
+    return edges[random_edge_no];
+  })
+  .catch((err) => {
+    console.log("Error ===============================");
+    console.log(err);
+  });
 cron.schedule("0 */20 * * * *", keepServerAlive); // ping to the server every 20 minutes
 cron.schedule("0 0 */1 * * *", automateInstagramStory); // upload a new instagram story every one hour
 

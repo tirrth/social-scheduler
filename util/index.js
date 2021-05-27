@@ -12,7 +12,7 @@ function generateRandomInteger(min, max) {
 }
 
 function keepServerAlive() {
-  request("https://jwt-cracker.herokuapp.com/health", (res) => {
+  request("https://social-scheduler.herokuapp.com/health", (res) => {
     if (res.statusCode === 200) {
       console.log(">>>>>>>>>> SERVER IS ALIVE <<<<<<<<<<");
     } else console.log(">>>>>>>>>> FAILED TO KEEP SERVER ALIVE <<<<<<<<<<");

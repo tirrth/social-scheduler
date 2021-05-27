@@ -138,13 +138,12 @@ class InstagramPuppet {
     } else page_link = `${this.#BASE_URL}/${page}`;
     page_link = `${page_link}?__a=1`;
     console.log("Page Link =", page_link);
-    return axios.get(page_link).then((res) => {
-      const { data } = res;
-      const edges = data?.graphql?.user?.edge_owner_to_timeline_media?.edges;
-      if (!Array.isArray(edges)) return;
-      const random_edge_no = generateRandomInteger(0, edges.length - 1);
-      return edges[random_edge_no];
-    });
+    const response = await this.#page.goto(page_link);
+    const body = await response.json();
+    const edges = body?.graphql?.user?.edge_owner_to_timeline_media?.edges;
+    if (!Array.isArray(edges)) return;
+    const random_edge_no = generateRandomInteger(0, edges.length - 1);
+    return edges[random_edge_no];
   };
 
   #uploadStoryFromLocal = async (file_path, cb) => {

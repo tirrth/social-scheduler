@@ -10,11 +10,6 @@ const cron = require("node-cron");
 const axios = require("axios");
 const { keepServerAlive } = require("./util");
 const { automateInstagramStory } = require("./instagram");
-const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
-const ffprobePath = require("@ffprobe-installer/ffprobe").path;
-const ffmpeg = require("fluent-ffmpeg");
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath);
 
 // global.instagramSession = [
 //   {
@@ -155,38 +150,8 @@ ffmpeg.setFfprobePath(ffprobePath);
 // ];
 
 // automateInstagramStory();
-ffmpeg.ffprobe(
-  path.relative(process.cwd(), __dirname + "/public/images/") + "/file.mp4",
-  (err, metadata) => {
-    console.log("err =", err);
-    console.log("metadata =", metadata);
-    ffmpeg((process.cwd(), __dirname + "/public/images/") + "/file.mp4")
-      .setStartTime("00:00:00")
-      .setDuration(15)
-      .output((process.cwd(), __dirname + "/public/images/") + "/file1.mp4")
-      .on("end", (err) => {
-        if (err) return console.log("Err: ", err);
-        console.log("Conversion Done");
-      })
-      .on("error", (err) => console.log(err))
-      .run();
-  }
-);
-axios
-  .get("https://www.instagram.com/fuckjerry?__a=1")
-  .then((res) => {
-    console.log("res =", res);
-    const { data } = res;
-    console.log("data =", data);
-    const edges = data?.graphql?.user?.edge_owner_to_timeline_media?.edges;
-    if (!Array.isArray(edges)) return;
-    const random_edge_no = generateRandomInteger(0, edges.length - 1);
-    return edges[random_edge_no];
-  })
-  .catch((err) => {
-    console.log("Error ===============================");
-    console.log(err);
-  });
+
+automateInstagramStory();
 cron.schedule("0 */20 * * * *", keepServerAlive); // ping to the server every 20 minutes
 cron.schedule("0 0 */1 * * *", automateInstagramStory); // upload a new instagram story every one hour
 

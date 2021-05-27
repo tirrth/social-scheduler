@@ -9,6 +9,11 @@ var app = express();
 const cron = require("node-cron");
 const { keepServerAlive } = require("./util");
 const { automateInstagramStory } = require("./instagram");
+const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+const ffprobePath = require("@ffprobe-installer/ffprobe").path;
+const ffmpeg = require("fluent-ffmpeg");
+ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobePath);
 
 // global.instagramSession = [
 //   {

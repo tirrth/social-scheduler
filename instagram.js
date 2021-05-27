@@ -198,7 +198,7 @@ class InstagramPuppet {
             .setDuration(15)
             .output(`${output_dir}/video_${minimumIntegerDigits(idx, 2)}.mp4`)
             .on("end", (err) => {
-              if (err) return console.log("Well, Error found!"), callback(err);
+              if (err) return console.log("Ffmpeg Error: ", err), callback(err);
               count += 1;
               console.log("Conversion done => " + count);
               if (count === time_intervals.length) {
@@ -239,20 +239,16 @@ class InstagramPuppet {
     url = url || this.#FALLBACK_IMAGE_URL;
     const file_name = `file.${!options.is_video ? "jpeg" : "mp4"}`;
     const file_path = `${this.#BASE_DIR}/${file_name}`;
-    this.#uploadVideoFromLocal(
-      path.relative(process.cwd(), __dirname + "/public/images/") + "/file.mp4",
-      options.callback
-    );
-    // this.#downloadStoryToLocal({
-    //   url,
-    //   dest: file_path,
-    //   cb: (err) => {
-    //     if (err) return options.callback({ success: false, error: err });
-    //     if (options.is_video) {
-    //       this.#uploadVideoFromLocal(file_path, options.callback);
-    //     } else this.#uploadStoryFromLocal(file_path, options.callback);
-    //   },
-    // });
+    this.#downloadStoryToLocal({
+      url,
+      dest: file_path,
+      cb: (err) => {
+        if (err) return options.callback({ success: false, error: err });
+        if (options.is_video) {
+          this.#uploadVideoFromLocal(file_path, options.callback);
+        } else this.#uploadStoryFromLocal(file_path, options.callback);
+      },
+    });
   };
 
   setFallbackImage = (img) => (this.#FALLBACK_IMAGE_URL = img);

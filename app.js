@@ -10,6 +10,11 @@ const cron = require("node-cron");
 const axios = require("axios");
 const { keepServerAlive } = require("./util");
 const { automateInstagramStory } = require("./instagram");
+const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+const ffprobePath = require("@ffprobe-installer/ffprobe").path;
+const ffmpeg = require("fluent-ffmpeg");
+ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobePath);
 
 // global.instagramSession = [
 //   {
@@ -150,6 +155,13 @@ const { automateInstagramStory } = require("./instagram");
 // ];
 
 // automateInstagramStory();
+ffmpeg.ffprobe(
+  path.relative(process.cwd(), __dirname + "/public/images/") + "/file.mp4",
+  (err, metadata) => {
+    console.log("err =", err);
+    console.log("metadata =", metadata);
+  }
+);
 axios
   .get("https://www.instagram.com/fuckjerry?__a=1")
   .then((res) => {

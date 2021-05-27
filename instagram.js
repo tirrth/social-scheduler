@@ -77,7 +77,6 @@ class InstagramPuppet {
 
   initialize = async () => {
     const osPlatform = os.platform(); // possible values are: 'darwin', 'freebsd', 'linux', 'sunos' or 'win32'
-    console.log("osPlatform =", osPlatform);
     let executablePath;
     if (/^win/i.test(osPlatform)) executablePath = "";
     else if (/^linux/i.test(osPlatform)) {
@@ -194,6 +193,7 @@ class InstagramPuppet {
             .setDuration(15)
             .output(`${output_dir}/video_${minimumIntegerDigits(idx, 2)}.mp4`)
             .on("end", (err) => {
+              err && console.log("Well, Error found!");
               if (err) return callback(err);
               count += 1;
               if (count === time_intervals.length) {
@@ -234,20 +234,20 @@ class InstagramPuppet {
     url = url || this.#FALLBACK_IMAGE_URL;
     const file_name = `file.${!options.is_video ? "jpeg" : "mp4"}`;
     const file_path = `${this.#BASE_DIR}/${file_name}`;
-    this.#uploadVideoFromLocal(
-      path.relative(process.cwd(), __dirname + "/public/images/") + "/file.mp4",
-      options.callback
-    );
-    // this.#downloadStoryToLocal({
-    //   url,
-    //   dest: file_path,
-    //   cb: (err) => {
-    //     if (err) return options.callback({ success: false, error: err });
-    //     if (options.is_video) {
-    //       this.#uploadVideoFromLocal(file_path, options.callback);
-    //     } else this.#uploadStoryFromLocal(file_path, options.callback);
-    //   },
-    // });
+    // this.#uploadVideoFromLocal(
+    //   path.relative(process.cwd(), __dirname + "/public/images/") + "/file.mp4",
+    //   options.callback
+    // );
+    this.#downloadStoryToLocal({
+      url,
+      dest: file_path,
+      cb: (err) => {
+        if (err) return options.callback({ success: false, error: err });
+        if (options.is_video) {
+          this.#uploadVideoFromLocal(file_path, options.callback);
+        } else this.#uploadStoryFromLocal(file_path, options.callback);
+      },
+    });
   };
 
   setFallbackImage = (img) => (this.#FALLBACK_IMAGE_URL = img);

@@ -8,6 +8,7 @@ const path = require("path");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const ffprobePath = require("@ffprobe-installer/ffprobe").path;
 const ffmpeg = require("fluent-ffmpeg");
+const { minimumIntegerDigits } = require("./util");
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
@@ -176,19 +177,13 @@ class InstagramPuppet {
     ffmpeg.ffprobe(input, (err, metadata) => {
       if (err) callback(err);
       else {
-        const _toLocalString = (number, minimumIntegerDigits = 2) => {
-          return number.toLocaleString("en-US", {
-            minimumIntegerDigits,
-            useGrouping: false,
-          });
-        };
         const duration = Math.floor(metadata.format.duration);
         const time_intervals = [];
         // this is a hard-coded loop made particularly for instagram's 15-seconds interval story, do not ever recommend this (it sucks...)
         for (var i = 0, j = 0, k = 0, l = 0; i < duration; i += 15) {
-          const second = _toLocalString(j);
-          const minute = _toLocalString(k);
-          const hour = _toLocalString(l);
+          const second = minimumIntegerDigits(j);
+          const minute = minimumIntegerDigits(k);
+          const hour = minimumIntegerDigits(l);
           time_intervals.push(`${hour}:${minute}:${second}`);
           if (i && i % 60 === 0) (j = 0), k++;
           else if (i && i % 3600 === 0) (j = 0), l++;
@@ -199,7 +194,7 @@ class InstagramPuppet {
           ffmpeg(input)
             .setStartTime(startTime)
             .setDuration(15)
-            .output(`${output_dir}/video_${_toLocalString(idx, 2)}.mp4`)
+            .output(`${output_dir}/video_${minimumIntegerDigits(idx, 2)}.mp4`)
             .on("end", (err) => {
               if (err) return callback(err);
               count += 1;

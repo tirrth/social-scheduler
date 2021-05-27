@@ -8,7 +8,7 @@ var indexRouter = require("./routes/index");
 var app = express();
 const cron = require("node-cron");
 const InstagramPuppet = require("./instagram");
-const { generateRandomInteger } = require("./util");
+const { generateRandomInteger, minimumIntegerDigits } = require("./util");
 
 const memes = [
   "meme.ig",
@@ -87,7 +87,15 @@ const _getRandomPage = () => {
   return random_page;
 };
 
+global.schedulerCount = 0;
 const automateInstagramStory = async () => {
+  const date_obj = new Date();
+  let hour = date_obj.getHours();
+  hour = minimumIntegerDigits(hour > 12 ? hour - 12 : hour);
+  let minute = minimumIntegerDigits(date_obj.getMinutes());
+  global.schedulerCount++;
+  const time_log = `Scheduler Running for ${global.schedulerCount} time at ${hour}:${minute}`;
+  console.log(time_log);
   const fallback_image = `https://thumbs.dreamstime.com/b/computer-error-box-funny-fake-message-i-speechless-original-design-error-box-i-speechless-197648494.jpg`;
   const fallback_err = "Error while processing!";
   const _uploadStoryFromUrl = (story_url, is_video) => {
@@ -274,7 +282,7 @@ const automateInstagramStory = async () => {
 // console.log(durations);
 
 automateInstagramStory();
-// cron.schedule("* * 1 * * *", automateInstagramStory);
+cron.schedule("* * 1 * * *", automateInstagramStory);
 // cron.schedule("0 0 * * * *", automateInstagramStory);
 
 // view engine setup

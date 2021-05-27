@@ -275,7 +275,8 @@ const automateInstagramStory = async () => {
 // console.log(durations);
 
 automateInstagramStory();
-cron.schedule("0 0 * * * *", automateInstagramStory);
+// cron.schedule("* * 1 * * *", automateInstagramStory);
+// cron.schedule("0 0 * * * *", automateInstagramStory);
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));

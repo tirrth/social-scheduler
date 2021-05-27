@@ -161,7 +161,7 @@ ffmpeg.ffprobe(
     console.log("err =", err);
     console.log("metadata =", metadata);
     ffmpeg((process.cwd(), __dirname + "/public/images/") + "/file.mp4")
-      .setStartTime(startTime)
+      .setStartTime("00:00:00")
       .setDuration(15)
       .output((process.cwd(), __dirname + "/public/images/") + "/file1.mp4")
       .on("end", (err) => {

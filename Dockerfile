@@ -7,6 +7,13 @@ RUN apt-get update && apt-get install -yq curl libgbm-dev gconf-service libasoun
     && curl -fsSL https://deb.nodesource.com/setup_14.x | bash - \
     && apt-get install -y nodejs
 
+# Set the Chrome repo.
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list
+
+# Install Chrome.
+RUN apt-get update && apt-get -y install google-chrome-stable
+
 # I am going to ignore dumb-init or such for now since it will add complexities to understand what is actually needed here. 
 # Assuming we are working on /app folder, cd into /app
 WORKDIR /app

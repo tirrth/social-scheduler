@@ -7,7 +7,6 @@ const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const ffprobePath = require("@ffprobe-installer/ffprobe").path;
 const ffmpeg = require("fluent-ffmpeg");
 const { generateRandomInteger, minimumIntegerDigits } = require("./util");
-const axios = require("axios");
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
@@ -332,7 +331,7 @@ const automateInstagramStory = async () => {
   const date_obj = new Date();
   let hour = date_obj.getHours();
   hour = minimumIntegerDigits(hour > 12 ? hour - 12 : hour);
-  let minute = minimumIntegerDigits(date_obj.getMinutes());
+  const minute = minimumIntegerDigits(date_obj.getMinutes());
   global.schedulerCount = (global.schedulerCount || 0) + 1;
   const time_log = `Scheduler Running for ${global.schedulerCount} time at ${hour}:${minute}`;
   console.log(time_log);

@@ -12,6 +12,13 @@ function generateRandomInteger(min, max) {
 }
 
 function keepServerAlive() {
+  const date_obj = new Date();
+  let hour = date_obj.getHours();
+  hour = minimumIntegerDigits(hour > 12 ? hour - 12 : hour);
+  const minute = minimumIntegerDigits(date_obj.getMinutes());
+  global.healthCheckCount = (global.healthCheckCount || 0) + 1;
+  const time_log = `Health Checker Running for ${global.healthCheckCount} time at ${hour}:${minute}`;
+  console.log(time_log);
   request("https://social-scheduler.herokuapp.com/health", (res) => {
     if (res.statusCode === 200) {
       console.log(">>>>>>>>>> SERVER IS ALIVE <<<<<<<<<<");

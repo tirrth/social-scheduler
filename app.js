@@ -7,7 +7,6 @@ var logger = require("morgan");
 var indexRouter = require("./routes/index");
 var app = express();
 const cron = require("node-cron");
-const axios = require("axios");
 const { keepServerAlive } = require("./util");
 const { automateInstagramStory } = require("./instagram");
 
@@ -149,8 +148,12 @@ const { automateInstagramStory } = require("./instagram");
 //   },
 // ];
 
-// automateInstagramStory();
-
+const { CLIENT_ID, SECRET_KEY } = process.env;
+if (!CLIENT_ID || !SECRET_KEY) {
+  const error = `CLIENT_ID or SECRET_KEY is not given as a configuration variable`;
+  console.log(error);
+  process.exit(0);
+}
 automateInstagramStory();
 cron.schedule("0 */20 * * * *", keepServerAlive); // ping to the server every 20 minutes
 cron.schedule("0 0 */1 * * *", automateInstagramStory); // upload a new instagram story every one hour

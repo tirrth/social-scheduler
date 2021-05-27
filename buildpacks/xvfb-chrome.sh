@@ -11,6 +11,7 @@ set -e
 BUILD_DIR=$1
 CACHE_DIR=$2
 ENV_DIR=$3
+HOME="app"
 
 LP_DIR=`cd $(dirname $0); cd ..; pwd`
 

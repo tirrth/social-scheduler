@@ -140,6 +140,7 @@ class InstagramPuppet {
     console.log("Page Link =", page_link);
     return axios.get(page_link).then((res) => {
       const { data } = res;
+      console.log("data =", data);
       const edges = data?.graphql?.user?.edge_owner_to_timeline_media?.edges;
       if (!Array.isArray(edges)) return;
       const random_edge_no = generateRandomInteger(0, edges.length - 1);
@@ -357,6 +358,7 @@ const automateInstagramStory = async () => {
   await ig.login(CLIENT_ID, SECRET_KEY);
   ig.getRandomPostFromPage(navigateToPage)
     .then((resp) => {
+      console.log("resp =", resp);
       const is_video = !!resp?.node?.is_video;
       const story_url = resp?.node?.[!is_video ? "display_url" : "video_url"];
       _uploadStoryFromUrl(story_url, is_video);

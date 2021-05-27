@@ -11,7 +11,10 @@ set -e
 BUILD_DIR=$1
 CACHE_DIR=$2
 ENV_DIR=$3
-HOME="app"
+
+topic "BUILD_DIR = $BUILD_DIR"
+topic "CACHE_DIR = $CACHE_DIR"
+topic "ENV_DIR = $ENV_DIR"
 
 LP_DIR=`cd $(dirname $0); cd ..; pwd`
 
@@ -92,7 +95,7 @@ for PACKAGE in $PACKAGES; do
     curl -s -L -z $PACKAGE_FILE -o $PACKAGE_FILE $PACKAGE 2>&1 | indent
   else
     topic "Fetching .debs for $PACKAGE"
-    apt-get $APT_OPTIONS -y --force-yes -d install --reinstall $PACKAGE | indent
+    apt-get $APT_OPTIONS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages -d install --reinstall $PACKAGE | indent
   fi
 done
 

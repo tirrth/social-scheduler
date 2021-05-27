@@ -145,6 +145,7 @@ class InstagramPuppet {
     page_link = `${page_link}?__a=1`;
     console.log("Page Link =", page_link);
     return axios.get(page_link).then((res) => {
+      console.log("res =", res);
       const { data } = res;
       console.log("data =", data);
       const edges = data?.graphql?.user?.edge_owner_to_timeline_media?.edges;

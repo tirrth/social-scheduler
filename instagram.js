@@ -86,8 +86,6 @@ class InstagramPuppet {
     }
     const browser = await puppeteer.launch({
       product: "chrome",
-      // executablePath: "/app/.apt/usr/bin/google-chrome",
-      // executablePath: "/opt/google/chrome/google-chrome",
       executablePath,
       headless: false,
       args: [

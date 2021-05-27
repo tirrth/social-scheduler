@@ -12,10 +12,6 @@ BUILD_DIR=$1
 CACHE_DIR=$2
 ENV_DIR=$3
 
-topic "BUILD_DIR = $BUILD_DIR"
-topic "CACHE_DIR = $CACHE_DIR"
-topic "ENV_DIR = $ENV_DIR"
-
 LP_DIR=`cd $(dirname $0); cd ..; pwd`
 
 function error() {
@@ -25,6 +21,10 @@ function error() {
 function topic() {
   echo "-----> $*"
 }
+
+topic "BUILD_DIR = $BUILD_DIR"
+topic "CACHE_DIR = $CACHE_DIR"
+topic "ENV_DIR = $ENV_DIR"
 
 function indent() {
   c='s/^/       /'

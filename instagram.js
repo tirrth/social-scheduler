@@ -77,6 +77,7 @@ class InstagramPuppet {
 
   initialize = async () => {
     const osPlatform = os.platform(); // possible values are: 'darwin', 'freebsd', 'linux', 'sunos' or 'win32'
+    console.log("osPlatform =", osPlatform);
     let executablePath;
     if (/^win/i.test(osPlatform)) executablePath = "";
     else if (/^linux/i.test(osPlatform)) {
@@ -87,6 +88,7 @@ class InstagramPuppet {
     const browser = await puppeteer.launch({
       product: "chrome",
       // executablePath: "/app/.apt/usr/bin/google-chrome",
+      executablePath: "/opt/google/chrome/google-chrome",
       headless: false,
       args: [
         "--no-sandbox",

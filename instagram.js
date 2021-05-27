@@ -111,12 +111,12 @@ class InstagramPuppet {
     });
   };
 
-  emulateTo = async (device_name) => {
+  emulateTo = async (device_name) =>
     await this.#page.emulate(puppeteer.devices[device_name]);
-  };
 
-  goto = async (url) =>
+  goto = async (url) => {
     await this.#page.goto(url, { waitUntil: "networkidle2" });
+  };
 
   login = async (username, password, options = {}) => {
     await this.goto(this.#BASE_URL);

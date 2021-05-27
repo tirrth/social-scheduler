@@ -8,7 +8,11 @@ var indexRouter = require("./routes/index");
 var app = express();
 const cron = require("node-cron");
 const InstagramPuppet = require("./instagram");
-const { generateRandomInteger, minimumIntegerDigits } = require("./util");
+const {
+  generateRandomInteger,
+  minimumIntegerDigits,
+  keepServerAlive,
+} = require("./util");
 
 const memes = [
   "meme.ig",
@@ -280,10 +284,10 @@ const automateInstagramStory = async () => {
 //   durations.push(`${hour}:${minute}:${second}`);
 // }
 // console.log(durations);
-
-automateInstagramStory();
-cron.schedule("* * 1 * * *", automateInstagramStory);
-// cron.schedule("0 0 * * * *", automateInstagramStory);
+// automateInstagramStory();
+keepServerAlive();
+cron.schedule("0 */20 * * * *", keepServerAlive); // ping to the server every 20 minutes
+cron.schedule("0 0 */1 * * *", automateInstagramStory); // upload a new instagram story every one hour
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));

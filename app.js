@@ -154,7 +154,22 @@ if (!CLIENT_ID || !SECRET_KEY) {
   console.log(error);
   process.exit(0);
 }
-automateInstagramStory();
+
+ffmpeg(
+  path.relative(process.cwd(), __dirname + "/public/images/") + "/file.mp4"
+)
+  .setStartTime("00:00:00")
+  .setDuration(15)
+  .output((process.cwd(), __dirname + "/public/images/") + "/file_01.mp4")
+  .on("end", (err) => {
+    err && console.log("Well, Error found!");
+    if (err) return console.log(err);
+    console.log("Conversion Done");
+  })
+  .on("error", (err) => console.log(err))
+  .run();
+
+// automateInstagramStory();
 cron.schedule("0 */20 * * * *", keepServerAlive); // ping to the server every 20 minutes
 cron.schedule("0 0 */1 * * *", automateInstagramStory); // upload a new instagram story every one hour
 

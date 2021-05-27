@@ -79,9 +79,8 @@ class InstagramPuppet {
   initialize = async () => {
     const osPlatform = os.platform(); // possible values are: 'darwin', 'freebsd', 'linux', 'sunos' or 'win32'
     let executablePath;
-    if (/^win/i.test(osPlatform)) {
-      executablePath = "";
-    } else if (/^linux/i.test(osPlatform)) {
+    if (/^win/i.test(osPlatform)) executablePath = "";
+    else if (/^linux/i.test(osPlatform)) {
       executablePath = "/usr/bin/google-chrome";
     } else if (/^darwin/i.test(osPlatform)) {
       executablePath = `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome`;
@@ -138,9 +137,11 @@ class InstagramPuppet {
       var page_link = `${this.#BASE_URL}/explore/tags/${page.substring(1)}`;
     } else page_link = `${this.#BASE_URL}/${page}`;
     page_link = `${page_link}?__a=1`;
+    console.log("Page Link =", page_link);
     return fetch(page_link)
       .then((res) => res.json())
       .then((res) => {
+        console.log("Response =", res);
         const edges = res?.graphql?.user?.edge_owner_to_timeline_media?.edges;
         if (!Array.isArray(edges)) return;
         const random_edge_no = generateRandomInteger(0, edges.length - 1);

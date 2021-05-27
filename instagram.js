@@ -88,7 +88,8 @@ class InstagramPuppet {
     const browser = await puppeteer.launch({
       product: "chrome",
       // executablePath: "/app/.apt/usr/bin/google-chrome",
-      executablePath: "/opt/google/chrome/google-chrome",
+      // executablePath: "/opt/google/chrome/google-chrome",
+      executablePath,
       headless: false,
       args: [
         "--no-sandbox",
@@ -233,16 +234,20 @@ class InstagramPuppet {
     url = url || this.#FALLBACK_IMAGE_URL;
     const file_name = `file.${!options.is_video ? "jpeg" : "mp4"}`;
     const file_path = `${this.#BASE_DIR}/${file_name}`;
-    this.#downloadStoryToLocal({
-      url,
-      dest: file_path,
-      cb: (err) => {
-        if (err) return options.callback({ success: false, error: err });
-        if (options.is_video) {
-          this.#uploadVideoFromLocal(file_path, options.callback);
-        } else this.#uploadStoryFromLocal(file_path, options.callback);
-      },
-    });
+    this.#uploadVideoFromLocal(
+      path.relative(process.cwd(), __dirname + "/public/images/") + "/file.mp4",
+      options.callback
+    );
+    // this.#downloadStoryToLocal({
+    //   url,
+    //   dest: file_path,
+    //   cb: (err) => {
+    //     if (err) return options.callback({ success: false, error: err });
+    //     if (options.is_video) {
+    //       this.#uploadVideoFromLocal(file_path, options.callback);
+    //     } else this.#uploadStoryFromLocal(file_path, options.callback);
+    //   },
+    // });
   };
 
   setFallbackImage = (img) => (this.#FALLBACK_IMAGE_URL = img);

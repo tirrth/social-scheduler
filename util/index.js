@@ -8,6 +8,7 @@ const request = (url, ...args) => {
   };
   return adapters[input_url.protocol].get(url, ...args);
 };
+
 function ordinal_suffix_of(i) {
   var j = i % 10,
     k = i % 100;
@@ -58,7 +59,7 @@ function currentTime(seperator = ":") {
   hour = minimumIntegerDigits(hour > 12 ? hour - 12 : hour);
   const minute = minimumIntegerDigits(date_obj.minute);
   const second = minimumIntegerDigits(date_obj.second);
-  return `${hour}${seperator}${minute}${seperator}${second}`;
+  return `${hour}${seperator}${minute}${seperator}${second} (${date_obj.zoneName})`;
 }
 
 function automateInstagramStory() {

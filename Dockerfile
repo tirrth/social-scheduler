@@ -1,4 +1,4 @@
-FROM node:latest
+FROM node:alpine
 
 # To run Headful mode, you will need to have a display, which is not present in a server. 
 # To avoid this, we will use Xvfb, and create a fake display, so the chrome will think there is a display and run properly. 

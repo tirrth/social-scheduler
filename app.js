@@ -7,11 +7,7 @@ var logger = require("morgan");
 var indexRouter = require("./routes/index");
 var app = express();
 const cron = require("node-cron");
-const {
-  keepServerAlive,
-  automateInstagramStory,
-  generateRandomInteger,
-} = require("./util");
+const { keepServerAlive, automateInstagramStory } = require("./util");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const ffprobePath = require("@ffprobe-installer/ffprobe").path;
 const ffmpeg = require("fluent-ffmpeg");

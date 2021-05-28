@@ -8,11 +8,6 @@ var indexRouter = require("./routes/index");
 var app = express();
 const cron = require("node-cron");
 const { keepServerAlive, automateInstagramStory } = require("./util");
-const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
-const ffprobePath = require("@ffprobe-installer/ffprobe").path;
-const ffmpeg = require("fluent-ffmpeg");
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath);
 
 const { CLIENT_ID, SECRET_KEY } = process.env;
 if (!CLIENT_ID || !SECRET_KEY) {

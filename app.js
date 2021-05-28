@@ -20,12 +20,13 @@ if (!CLIENT_ID || !SECRET_KEY) {
   console.log(error);
   process.exit(0);
 }
+automateInstagramStory();
 cron.schedule("0 */20 * * * *", keepServerAlive); // ping to the server every 20 minutes
 cron.schedule("0 0 */1 * * *", automateInstagramStory); // upload a new instagram story every one hour
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "jade");
+app.set("view engine", "pug");
 
 app.use(logger("dev"));
 app.use(express.json());

@@ -1,4 +1,4 @@
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
 const https = require("https");
 const fs = require("fs");
 const os = require("os");

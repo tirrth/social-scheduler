@@ -1,4 +1,5 @@
 const path = require("path");
+const { DateTime } = require("luxon");
 const request = (url, ...args) => {
   const input_url = new URL(url);
   const adapters = {
@@ -52,11 +53,11 @@ function keepServerAlive() {
 }
 
 function currentTime(seperator = ":") {
-  const date_obj = new Date();
-  let hour = date_obj.getHours();
+  const date_obj = DateTime.now().setZone("Asia/Kolkata"); // IST
+  let { hour } = date_obj;
   hour = minimumIntegerDigits(hour > 12 ? hour - 12 : hour);
-  const minute = minimumIntegerDigits(date_obj.getMinutes());
-  const second = minimumIntegerDigits(date_obj.getSeconds());
+  const minute = minimumIntegerDigits(date_obj.minute);
+  const second = minimumIntegerDigits(date_obj.second);
   return `${hour}${seperator}${minute}${seperator}${second}`;
 }
 

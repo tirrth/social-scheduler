@@ -62,20 +62,12 @@ class InstagramPuppet {
     });
   };
 
-  #removeStoryFromLocal = (file_path) => {
-    try {
-      fs.unlinkSync(file_path);
-    } catch (err) {
-      console.log("Error: ", err);
-    }
-  };
-
   #resetDirectory = () => {
     try {
       fs.rmdirSync(this.#BASE_DIR, { recursive: true });
       fs.mkdirSync(`${this.#BASE_DIR}/segments`, { recursive: true });
-    } catch (err) {
-      console.log("Error: ", err);
+    } catch {
+      console.log("Error while reseting the directory...");
     }
   };
 
@@ -87,8 +79,7 @@ class InstagramPuppet {
 
   initialize = async () => {
     const osPlatform = os.platform(); // possible values are: 'darwin', 'freebsd', 'linux', 'sunos' or 'win32'
-    let executablePath;
-    if (/^win/i.test(osPlatform)) executablePath = "";
+    if (/^win/i.test(osPlatform)) var executablePath = "";
     else if (/^linux/i.test(osPlatform)) {
       executablePath = "/usr/bin/google-chrome";
     } else if (/^darwin/i.test(osPlatform)) {
@@ -130,6 +121,7 @@ class InstagramPuppet {
     await this.goto(this.#BASE_URL);
     const { instagramSession } = global;
     if (Array.isArray(instagramSession) && instagramSession.length) {
+      console.log("Signing in through Instagram Session...");
       return await this.#page.setCookie(...global.instagramSession);
     }
     await this.#page.waitForSelector("input[name=username]");
@@ -137,6 +129,7 @@ class InstagramPuppet {
     await this.#page.type("input[name=password]", password);
     await this.#page.click("button[type=submit]");
     await this.#chooseLoginPreference(!!options?.saveLoginInfo, this.#page);
+    console.log("Signing in through Instagram Credentials...");
     global.instagramSession = await this.#page.cookies();
   };
 
@@ -174,7 +167,6 @@ class InstagramPuppet {
       visible: true,
       timeout: 90000, // default: 30000
     });
-    this.#removeStoryFromLocal(file_path);
     console.log("Story uploaded successfully...");
     await cb?.({ success: true, res: "Story uploaded successfully" });
   };
@@ -208,7 +200,6 @@ class InstagramPuppet {
               count += 1;
               console.log("Conversion count => " + count);
               if (count === time_intervals.length) {
-                this.#removeStoryFromLocal(input);
                 console.log("--- Conversion Done ---");
                 return callback(err, "Conversion Done");
               }

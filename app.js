@@ -15,7 +15,7 @@ if (!CLIENT_ID || !SECRET_KEY) {
   console.log(error);
   process.exit(0);
 }
-cron.schedule("0 */20 * * * *", keepServerAlive); // ping to the server every 20 minutes
+cron.schedule("0 */30 * * * *", keepServerAlive); // ping to the server every 30 minutes
 cron.schedule("0 0 */1 * * *", automateInstagramStory); // upload a new instagram story every one hour
 
 // view engine setup

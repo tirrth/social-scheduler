@@ -1,7 +1,6 @@
-const puppeteer = require("puppeteer-core");
+const puppeteer = require("puppeteer");
 const https = require("https");
 const fs = require("fs");
-const os = require("os");
 const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const ffprobePath = require("@ffprobe-installer/ffprobe").path;
 const ffmpeg = require("fluent-ffmpeg");
@@ -78,16 +77,8 @@ class InstagramPuppet {
   };
 
   initialize = async () => {
-    const osPlatform = os.platform(); // possible values are: 'darwin', 'freebsd', 'linux', 'sunos' or 'win32'
-    if (/^win/i.test(osPlatform)) var executablePath = "";
-    else if (/^linux/i.test(osPlatform)) {
-      executablePath = "/usr/bin/google-chrome";
-    } else if (/^darwin/i.test(osPlatform)) {
-      executablePath = `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome`;
-    }
     const browser = await puppeteer.launch({
       product: "chrome",
-      executablePath,
       headless: false,
       args: [
         "--no-sandbox",
@@ -142,7 +133,8 @@ class InstagramPuppet {
     console.log("Page Link: " + page_link);
     const response = await this.#page.goto(page_link);
     const body = await response.json();
-    const edges = body?.graphql?.user?.edge_owner_to_timeline_media?.edges;
+    let edges = body?.graphql?.user?.edge_owner_to_timeline_media?.edges;
+    edges = edges.filter((e) => !e?.node?.is_video);
     if (!Array.isArray(edges)) return;
     const random_edge_no = generateRandomInteger(0, edges.length - 1);
     return edges[random_edge_no];
